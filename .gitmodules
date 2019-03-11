@@ -1,0 +1,4 @@
+[submodule "vendor/sdk"]
+	path = vendor/sdk
+	url = https://github.com/alliedmodders/hl2sdk
+	branch = tf2
