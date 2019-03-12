@@ -8,6 +8,10 @@
 #define NULL nullptr
 #endif
 
+#include "common.h"
+#include "player.h"
+#include "ifaces.h"
+
 #include "interface.h"
 #include "filesystem.h"
 #include "engine/iserverplugin.h"
@@ -32,15 +36,12 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-#define PRINT_TAG() ConColorMsg(Color(0, 153, 153, 255), "[GSI] ")
-#define PLUGIN_VERSION "0.0.1"
-
 IServerGameDLL* g_pGameDLL;
 IFileSystem* g_pFileSystem;
 IHLTVDirector* g_pHLTVDirector;
 IVEngineServer* engine;
 
-class Plugin : public IServerPluginCallbacks {
+class Plugin : public IServerPluginCallbacks, IGameEventListener2 {
 public:
   virtual bool Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn gameServerFactory) override;
   virtual void Unload() override { }
@@ -49,7 +50,7 @@ public:
   virtual const char* GetPluginDescription() override { return "GSI"; }
   virtual void LevelInit(const char* mapName) override { }
   virtual void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax) override { }
-  virtual void GameFrame(bool simulating) override { }
+  virtual void GameFrame(bool simulating) override { };
   virtual void LevelShutdown() override { }
   virtual void ClientActive(edict_t* pEntity) override { }
   virtual void ClientDisconnect(edict_t* pEntity) override { }
@@ -62,6 +63,8 @@ public:
   virtual void OnQueryCvarValueFinished(QueryCvarCookie_t iCookie, edict_t* pPlayerEntity, EQueryCvarValueStatus eStatus, const char* pCvarName, const char* pCvarValue) override { }
   virtual void OnEdictAllocated(edict_t* edict) { }
   virtual void OnEdictFreed(const edict_t* edict) { }
+
+  void FireGameEvent(IGameEvent* pEvent) override;
 };
 
 Plugin g_Plugin;
@@ -69,7 +72,14 @@ EXPOSE_SINGLE_INTERFACE_GLOBALVAR(Plugin, IServerPluginCallbacks, INTERFACEVERSI
 
 bool Plugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn gameServerFactory) {
   PRINT_TAG();
-  ConColorMsg(Color(255, 255, 0, 255), "Loading plugin...\n");
+  ConColorMsg(Color(255, 255, 0, 255), "Loading plugin, Version: %s\n", PLUGIN_VERSION);
+
+  Interfaces::Load(interfaceFactory, gameServerFactory);
+  Interfaces::pGameEventManager->AddListener(this, "player_death", false);
+  Interfaces::pGameEventManager->AddListener(this, "tf_game_over", false);
+  Interfaces::pGameEventManager->AddListener(this, "teamplay_round_win", false);
+  Interfaces::pGameEventManager->AddListener(this, "teamplay_round_stalemate", false);
+  Interfaces::pGameEventManager->AddListener(this, "teamplay_game_over", false);
 
   g_pGameDLL = (IServerGameDLL*)gameServerFactory(INTERFACEVERSION_SERVERGAMEDLL, nullptr);
   if(!g_pGameDLL) {
@@ -87,16 +97,32 @@ bool Plugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn gameServ
 
   g_pFileSystem = (IFileSystem*)interfaceFactory(FILESYSTEM_INTERFACE_VERSION, nullptr);
   if(!g_pFileSystem) {
-    Error("[GSI] Could not find filesystem interface, aborting load\n");
+    PRINT_TAG();
+    ConColorMsg(Color(255, 0, 0, 255), "Could not find filesystem interface, aborting load\n");
     return false;
   }
 
+  if(!Player::CheckDependencies()) {
+	PRINT_TAG();
+	ConColorMsg(Color(255, 0, 0, 255), "Required player helper class for module!\n");
+	return false;
+  }
+
   PRINT_TAG();
-  ConColorMsg(Color(255, 255, 0, 255), "Successfully Started, Version: %s\n", PLUGIN_VERSION);
+  ConColorMsg(Color(255, 255, 0, 255), "Successfully Started!\n");
   return true;
 }
 
 void Plugin::ClientPutInServer(edict_t *pEntity, char const *playername) {
     PRINT_TAG();
-    ConColorMsg(Color(255, 255, 255, 255), "Client Joined: %s", playername);
+    ConColorMsg(Color(255, 255, 255, 255), "Client Joined: %s\n", playername);
+}
+
+void Plugin::FireGameEvent(IGameEvent* pEvent) {
+	PRINT_TAG();
+	ConColorMsg(Color(255, 255, 255, 255), "Event: %s\n", pEvent->GetName());
+
+	for (Player player : Player::Iterable()) {
+		ConColorMsg(Color(255, 255, 255, 255), "Player: %s\n", player.GetName().c_str());
+	}
 }
