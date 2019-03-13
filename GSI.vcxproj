@@ -119,6 +119,15 @@
     <ClCompile Include="src\player.cpp" />
     <ClCompile Include="src\tfdefs.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\common.h" />
+    <ClInclude Include="src\entities.h" />
+    <ClInclude Include="src\exceptions.h" />
+    <ClInclude Include="src\gamedata.h" />
+    <ClInclude Include="src\ifaces.h" />
+    <ClInclude Include="src\player.h" />
+    <ClInclude Include="src\tfdefs.h" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
