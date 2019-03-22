@@ -5,3 +5,4 @@ Debug/
 vendor/
 .vs/
 *.user
+.vscode/

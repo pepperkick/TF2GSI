@@ -41,10 +41,17 @@ IFileSystem* g_pFileSystem;
 IHLTVDirector* g_pHLTVDirector;
 IVEngineServer* engine;
 
+bool poolReady = false;
+bool breakPool = false;
+
+HWND gTimers;
+
+void CALLBACK LoopTimer(HWND hwnd, UINT uMsg, UINT timerId, DWORD dwTime);
+
 class Plugin : public IServerPluginCallbacks, IGameEventListener2 {
 public:
     virtual bool Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn gameServerFactory) override;
-    virtual void Unload() override { }
+    virtual void Unload() override;
     virtual void Pause() override { }
     virtual void UnPause() override { }
     virtual const char* GetPluginDescription() override { return "GSI"; }
@@ -79,6 +86,8 @@ bool Plugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn gameServ
     Interfaces::Load(interfaceFactory, gameServerFactory);
     Interfaces::pGameEventManager->AddListener(this, "player_death", false);
     Interfaces::pGameEventManager->AddListener(this, "tf_game_over", false);
+    Interfaces::pGameEventManager->AddListener(this, "teamplay_round_start", false);
+    Interfaces::pGameEventManager->AddListener(this, "teamplay_round_active", false);
     Interfaces::pGameEventManager->AddListener(this, "teamplay_round_win", false);
     Interfaces::pGameEventManager->AddListener(this, "teamplay_round_stalemate", false);
     Interfaces::pGameEventManager->AddListener(this, "teamplay_game_over", false);
@@ -106,7 +115,7 @@ bool Plugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn gameServ
 
     if(!Player::CheckDependencies()) {
         PRINT_TAG();
-        ConColorMsg(Color(255, 0, 0, 255), "Required player helper class for module!\n");
+        ConColorMsg(Color(255, 0, 0, 255), "Required player helper class!\n");
         return false;
     }
 
@@ -117,29 +126,23 @@ bool Plugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn gameServ
     os << "plugin started";
     this->Transmit(os.str().c_str());
 
+    SetTimer(gTimers, 0, 3000, &LoopTimer);
+
     return true;
+}
+
+void Plugin::Unload() {
+    KillTimer(gTimers, 0);
 }
 
 void Plugin::ClientPutInServer(edict_t *pEntity, char const *playername) {
     PRINT_TAG();
     ConColorMsg(Color(255, 255, 255, 255), "Client Joined: %s\n", playername);
-    }
+}
 
-    void Plugin::FireGameEvent(IGameEvent* pEvent) {
+void Plugin::FireGameEvent(IGameEvent* pEvent) {
     PRINT_TAG();
     ConColorMsg(Color(255, 255, 255, 255), "Event: %s\n", pEvent->GetName());
-
-    std::ostringstream os;
-    os << "event " << pEvent->GetName();
-    this->Transmit(os.str().c_str());
-
-    for (Player player : Player::Iterable()) {
-        ConColorMsg(Color(255, 255, 255, 255), "Player: %s\n", player.GetName().c_str());
-
-        std::ostringstream os;
-        os << "player " << player.GetName().c_str();
-        this->Transmit(os.str().c_str());
-    }
 }
 
 void Plugin::Transmit(const char* msg) {
@@ -150,4 +153,30 @@ void Plugin::Transmit(const char* msg) {
 
     DWORD cbWritten;
     WriteFile(hPipe, msg, strlen(msg), &cbWritten, NULL);
+}
+
+void CALLBACK LoopTimer(HWND hwnd, UINT uMsg, UINT timerId, DWORD dwTime) {
+    std::ostringstream os;
+
+    os << "{";
+    os << "\"players\": [ ";
+    for (Player player : Player::Iterable()) {
+        os << "{ "
+            << "\"name\": \"" << player.GetName().c_str()
+            << "\", \"team\": \"" << player.GetTeam()
+            << "\", \"health\": \"" << player.GetHealth()
+            << "\", \"class\": \"" << player.GetClass()
+            << "\", \"maxHealth\": \"" << player.GetMaxHealth()
+            << "\", \"weapon1\": \"" << player.GetWeapon(0)
+            << "\", \"weapon2\": \"" << player.GetWeapon(1)
+            << "\", \"weapon3\": \"" << player.GetWeapon(2)
+            << "\", \"weapon4\": \"" << player.GetWeapon(3)
+            << "\", \"steamId\": \"" << player.GetSteamID().ConvertToUint64()
+            << "\", \"alive\": \"" << player.IsAlive()
+            << "\" }, ";\
+    }
+    os << " ]";
+    os << " }";
+
+    g_Plugin.Transmit(os.str().c_str());
 }

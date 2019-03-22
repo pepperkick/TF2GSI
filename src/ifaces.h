@@ -37,4 +37,6 @@ class Interfaces {
 
 		static IClientMode *GetClientMode();
 		static C_HLTVCamera *GetHLTVCamera();
+
+		static IBaseClientDLL* GetClientDLL() { return pClientDLL; }
 };

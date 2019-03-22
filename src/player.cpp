@@ -330,8 +330,6 @@ CSteamID Player::GetSteamID() const {
 						universe = Interfaces::pSteamAPIContext->SteamUtils()->GetConnectedUniverse();
 					}
 					else {
-						// let's just assume that it's public - what are the chances that there's a Valve employee testing this on another universe without Steam?
-
 						PRINT_TAG();
 						Warning("Steam libraries not available - assuming public universe for user Steam IDs!\n");
 
