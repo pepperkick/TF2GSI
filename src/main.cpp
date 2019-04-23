@@ -12,6 +12,7 @@
 #include "filesystem.h"
 #include "engine/iserverplugin.h"
 #include "game/server/iplayerinfo.h"
+#include "toolframework/ienginetool.h"
 #include "eiface.h"
 #include "igameevents.h"
 #include "convar.h"
@@ -29,7 +30,6 @@
 
 #include "common.h"
 #include "player.h"
-#include "team.h"
 #include "ifaces.h"
 #include "entities.h"
 
@@ -169,8 +169,6 @@ void CALLBACK LoopTimer(HWND hwnd, UINT uMsg, UINT timerId, DWORD dwTime) {
 	Player localPlayer = Player::GetLocalPlayer();
 	Player targetPlayer = Player::GetTargetPlayer();
 
-	Team::FindTeams();
-
 	bool isInGame = Interfaces::GetEngineClient()->IsInGame();
 
 	const char* mapName = Interfaces::GetEngineClient()->GetLevelName();
@@ -185,27 +183,45 @@ void CALLBACK LoopTimer(HWND hwnd, UINT uMsg, UINT timerId, DWORD dwTime) {
             << " }, ";
 
 		if (targetPlayer) {
-			ConColorMsg(Color(255, 255, 0, 255), "Target: %s\n", targetPlayer.GetName().c_str());
             os << "\"player\": { "
                 << "\"name\": \"" << targetPlayer.GetName().c_str() << "\", "
                 << "\"steamid\": \"" << targetPlayer.GetSteamID().ConvertToUint64() << "\" "
                 << " }, ";
 		}
 
-		bool flag = false;
+		bool tvFlag = false, inGameFlag = false;
 
 		if (isInGame) {
+			if (!inGameFlag) {
+				Player::FindPlayerResource();
+				Team::FindTeams();
+				RoundTimer::FindRoundTimer();
+
+				inGameFlag = true;
+			}
+
 			os << "\"map\": { "
 				<< "\"name\": \"" << mapName << "\", "
 				<< " },";
 
-			if (Team::redTeam->IsValid() && Team::blueTeam->IsValid()) {
+			if (RoundTimer::GetRoundTimer()->IsValid()) {
+				os << "\"round\": {"
+					<< "\"isPuased\": \"" << RoundTimer::GetRoundTimer()->IsPaused() << "\", "
+					<< "\"timeRemaining\": \"" << RoundTimer::GetRoundTimer()->GetTimeRemaining() << "\", "
+					<< "\"maxLength\": \"" << RoundTimer::GetRoundTimer()->GetMaxLength() << "\", "
+					<< "\"endTime\": \"" << RoundTimer::GetRoundTimer()->GetEndTime() - Interfaces::GetEngineTools()->ClientTime() << "\", "
+					<< " }, ";
+			}
+
+			if (Team::GetRedTeam()->IsValid() && Team::GetBlueTeam()->IsValid()) {
 				os << "\"teams\": {"
 					<< "\"team_blue\": {"
-					<< "\"score\": " << Team::blueTeam->GetScore()
+					<< "\"name\": \"" << Team::GetBlueTeam()->GetName().c_str() << "\", "
+					<< "\"score\": \"" << Team::GetBlueTeam()->GetScore() << "\", "
 					<< " }, "
 					<< "\"team_red\": {"
-					<< "\"score\": " << Team::redTeam->GetScore()
+					<< "\"name\": \"" << Team::GetRedTeam()->GetName().c_str() << "\", "
+					<< "\"score\": \"" << Team::GetRedTeam()->GetScore() << "\", "
 					<< " }, "
 					<< " }, ";
 			}
@@ -214,8 +230,8 @@ void CALLBACK LoopTimer(HWND hwnd, UINT uMsg, UINT timerId, DWORD dwTime) {
 			for (Player player : Player::Iterable()) {
 				Vector position = player.GetPosition();
 
-				if (!flag) {
-					flag = true;
+				if (!tvFlag) {
+					tvFlag = true;
 					continue;
 				}
 
@@ -233,6 +249,8 @@ void CALLBACK LoopTimer(HWND hwnd, UINT uMsg, UINT timerId, DWORD dwTime) {
 					<< "\", \"score\": \"" << player.GetTotalScore()
 					<< "\", \"kills\": \"" << player.GetScore()
 					<< "\", \"deaths\": \"" << player.GetDeaths()
+					<< "\", \"damage\": \"" << player.GetDamage()
+					<< "\", \"respawnTime\": \"" << player.GetRespawnTime() - Interfaces::GetEngineTools()->ClientTime()
 					<< "\", \"position\": \"" << position.x << ", " << position.y << ", " << position.z << "\", ";
 
 				if (player.GetClass() == TFClassType::TFClass_Medic) {
@@ -271,6 +289,9 @@ void CALLBACK LoopTimer(HWND hwnd, UINT uMsg, UINT timerId, DWORD dwTime) {
 				os << "}, ";
 			}
 			os << " }";
+		}
+		else {
+			inGameFlag = false;
 		}
     os << " }";
 

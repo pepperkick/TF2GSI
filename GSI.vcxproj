@@ -97,7 +97,6 @@
     <ClCompile Include="src\entities.cpp" />
     <ClCompile Include="src\ifaces.cpp" />
     <ClCompile Include="src\player.cpp" />
-    <ClCompile Include="src\team.cpp" />
     <ClCompile Include="src\tfdefs.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -107,7 +106,6 @@
     <ClInclude Include="src\gamedata.h" />
     <ClInclude Include="src\ifaces.h" />
     <ClInclude Include="src\player.h" />
-    <ClCompile Include="src\team.h" />
     <ClInclude Include="src\tfdefs.h" />
     <ClInclude Include="src\camerastate.h" />
   </ItemGroup>

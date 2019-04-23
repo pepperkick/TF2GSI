@@ -21,24 +21,7 @@
 #include "ifaces.h"
 #include "camerastate.h"
 
-CHandle<C_BaseEntity> GetPlayerResource() {
-	int maxEntity = Interfaces::pClientEntityList->GetHighestEntityIndex();
-
-	for (int i = 0; i <= maxEntity; i++) {
-		IClientEntity* entity = Interfaces::pClientEntityList->GetClientEntity(i);
-
-		if (!entity) {
-			continue;
-		}
-
-		if (Entities::CheckEntityBaseclass(entity, "TFPlayerResource")) {
-			return dynamic_cast<C_BaseEntity*>(entity);
-		}
-	}
-
-	return null;
-}
-
+CHandle<C_BaseEntity> playerResource;
 Player::Player(int entindex) {
 	playerEntity = Interfaces::pClientEntityList->GetClientEntity(entindex);
 }
@@ -311,13 +294,13 @@ int Player::GetHealth() const {
 }
 
 int Player::GetMaxHealth() const {
-	if (!GetPlayerResource().Get()) return -1;
+	if (!playerResource.Get()) return -1;
 
 	char index[4];
 	GetPropIndexString(playerEntity->entindex(), index);
 
 	if (IsValid()) {
-		return (int)* Entities::GetEntityProp<int*>(GetPlayerResource().Get(), { "m_iMaxHealth", index });
+		return (int)* Entities::GetEntityProp<int*>(playerResource.Get(), { "m_iMaxHealth", index });
 	}
 
 	return -1;
@@ -376,52 +359,65 @@ int Player::GetDominatedBy() const {
 }
 
 int Player::GetScore() const {
-	if (!GetPlayerResource().Get()) return -1;
+	if (!playerResource.Get()) return -1;
 
 	char index[4];
 	GetPropIndexString(playerEntity->entindex(), index);
 
 	if (IsValid()) {
-		return (int)* Entities::GetEntityProp<int*>(GetPlayerResource().Get(), { "m_iScore", index });
+		return (int)* Entities::GetEntityProp<int*>(playerResource.Get(), { "m_iScore", index });
 	}
 
 	return -1;
 }
 
 int Player::GetTotalScore() const {	
-	if (!GetPlayerResource().Get()) return -1;
+	if (!playerResource.Get()) return -1;
 
 	char index[4];
 	GetPropIndexString(playerEntity->entindex(), index);
 
 	if (IsValid()) {
-		return (int)* Entities::GetEntityProp<int*>(GetPlayerResource().Get(), { "m_iTotalScore", index });
+		return (int)* Entities::GetEntityProp<int*>(playerResource.Get(), { "m_iTotalScore", index });
 	}
 
 	return -1;
 }
 
 int Player::GetDeaths() const {
-	if (!GetPlayerResource().Get()) return -1;
+	if (!playerResource.Get()) return -1;
 
 	char index[4];
 	GetPropIndexString(playerEntity->entindex(), index);
 
 	if (IsValid()) {
-		return (int)* Entities::GetEntityProp<int*>(GetPlayerResource().Get(), { "m_iDeaths", index });
+		return (int)* Entities::GetEntityProp<int*>(playerResource.Get(), { "m_iDeaths", index });
+	}
+
+	return -1;
+}
+
+int Player::GetDamage() const {
+	if (!playerResource.Get()) return -1;
+
+	char index[4];
+	GetPropIndexString(playerEntity->entindex(), index);
+
+	if (IsValid()) {
+		return (int)* Entities::GetEntityProp<int*>(playerResource.Get(), { "m_iDamage", index });
 	}
 
 	return -1;
 }
 
 int Player::GetCaptures() const {
-	if (!GetPlayerResource().Get()) return -1;
+	if (!playerResource.Get()) return -1;
 
 	char index[4];
 	GetPropIndexString(playerEntity->entindex(), index);
 
 	if (IsValid()) {
-		return (int)* Entities::GetEntityProp<int*>(GetPlayerResource().Get(), { "m_iCaptures", index });
+		return (int)* Entities::GetEntityProp<int*>(playerResource.Get(), { "m_iCaptures", index });
 	}
 
 	return -1;
@@ -497,6 +493,19 @@ int Player::GetKillAssists() const {
 	}
 
 	return 0;
+}
+
+float Player::GetRespawnTime() const {
+	if (!playerResource.Get()) return -1;
+
+	char index[4];
+	GetPropIndexString(playerEntity->entindex(), index);
+
+	if (IsValid()) {
+		return (float)* Entities::GetEntityProp<float*>(playerResource.Get(), { "m_flNextRespawnTime", index });
+	}
+
+	return -1;
 }
 
 CSteamID Player::GetSteamID() const {
@@ -757,7 +766,6 @@ Player Player::GetTargetPlayer() {
 	if (Interfaces::GetEngineClient()->IsHLTV()) {
 		HLTVCameraOverride* hltvcamera = (HLTVCameraOverride*)Interfaces::GetHLTVCamera();
 		int mode = hltvcamera->m_nCameraMode;
-		ConColorMsg(Color(255, 255, 0, 255), "Mode: %d\n", mode);
 
 		if (mode == OBS_MODE_CHASE || mode == OBS_MODE_IN_EYE) {
 			Player targetPlayer = hltvcamera->m_iTraget1;
@@ -871,4 +879,176 @@ bool Player::CheckDependencies() {
 	}
 
 	return ready;
+}
+
+void Player::FindPlayerResource() {
+	int maxEntity = Interfaces::pClientEntityList->GetHighestEntityIndex();
+
+	for (int i = 0; i <= maxEntity; i++) {
+		IClientEntity* entity = Interfaces::pClientEntityList->GetClientEntity(i);
+
+		if (!entity) {
+			continue;
+		}
+
+		if (Entities::CheckEntityBaseclass(entity, "TFPlayerResource")) {
+			playerResource = dynamic_cast<C_BaseEntity*>(entity);
+			break;
+		}
+	}
+}
+
+
+Team* blueTeam;
+Team* redTeam;
+
+Team::Team(IClientEntity* entity) {
+	teamEntity = entity;
+}
+
+std::string Team::GetName() const {
+	if (IsValid()) {
+		return (std::string)* Entities::GetEntityProp<std::string*>(teamEntity, { "m_szTeamname" });
+	}
+
+	return "";
+}
+
+int Team::GetScore() const {
+	if (IsValid()) {
+		return (int)* Entities::GetEntityProp<int*>(teamEntity, { "m_iScore" });
+	}
+
+	return -1;
+}
+
+int Team::GetRoundsWon() const {
+	if (IsValid()) {
+		return (int)* Entities::GetEntityProp<int*>(teamEntity, { "m_iRoundsWon" });
+	}
+
+	return -1;
+}
+
+bool Team::IsValid() const {
+	return teamEntity.IsValid() && Entities::CheckEntityBaseclass(teamEntity, "TFTeam");
+}
+
+void Team::FindTeams() {
+	int maxEntity = Interfaces::pClientEntityList->GetHighestEntityIndex();
+
+	for (int i = 0; i <= maxEntity; i++) {
+		IClientEntity* entity = Interfaces::pClientEntityList->GetClientEntity(i);
+
+		if (!entity) {
+			continue;
+		}
+
+		if (Entities::CheckEntityBaseclass(entity, "TFTeam")) {
+			int* team = Entities::GetEntityProp<int*>(entity, { "m_iTeamNum" });
+
+			if (*team == TFTeam_Blue) {
+				blueTeam = new Team(entity);
+			}
+			else if (*team == TFTeam_Red) {
+				redTeam = new Team(entity);
+			}
+		}
+	}
+}
+
+Team* Team::GetBlueTeam() {
+	return blueTeam;
+}
+
+Team* Team::GetRedTeam() {
+	return redTeam;
+}
+
+bool Team::CheckDependencies() {
+	bool ready = true;
+
+	if (!Interfaces::pClientEntityList) {
+		PRINT_TAG();
+		Warning("Required interface IClientEntityList for team helper class not available!\n");
+
+		ready = false;
+	}
+
+	if (!Interfaces::pEngineTool) {
+		PRINT_TAG();
+		Warning("Required interface IEngineTool for team helper class not available!\n");
+
+		ready = false;
+	}
+
+	return ready;
+}
+
+
+RoundTimer* roundTimer;
+
+RoundTimer::RoundTimer(IClientEntity* entity) {
+	roundEntity = entity;
+}
+
+bool RoundTimer::IsPaused() const {
+	if (IsValid()) {
+		return (bool)* Entities::GetEntityProp<bool*>(roundEntity, { "m_bTimerPaused" });
+	}
+
+	return -1;
+}
+
+float RoundTimer::GetTimeRemaining() const {
+	if (IsValid()) {
+		return (float)* Entities::GetEntityProp<float*>(roundEntity, { "m_flTimeRemaining" });
+	}
+
+	return -1;
+}
+
+float RoundTimer::GetEndTime() const {
+	if (IsValid()) {
+		return (float)* Entities::GetEntityProp<float*>(roundEntity, { "m_flTimerEndTime" });
+	}
+
+	return -1;
+}
+
+int RoundTimer::GetMaxLength() const {
+	if (IsValid()) {
+		return (float)* Entities::GetEntityProp<float*>(roundEntity, { "m_nTimerMaxLength" });
+	}
+
+	return -1;
+}
+
+bool RoundTimer::IsValid() const {
+	return roundEntity.IsValid() && Entities::CheckEntityBaseclass(roundEntity, "TeamRoundTimer");
+}
+
+void RoundTimer::FindRoundTimer() {
+	int maxEntity = Interfaces::pClientEntityList->GetHighestEntityIndex();
+
+	for (int i = 0; i <= maxEntity; i++) {
+		IClientEntity* entity = Interfaces::pClientEntityList->GetClientEntity(i);
+
+		if (!entity) {
+			continue;
+		}
+
+		if (Entities::CheckEntityBaseclass(entity, "TeamRoundTimer")) {
+			bool inHud = (bool)* Entities::GetEntityProp<bool*>(entity, { "m_bShowInHUD" });
+
+			if (inHud) {
+				roundTimer = new RoundTimer(entity);
+				break;
+			}
+		}
+	}
+}
+
+RoundTimer* RoundTimer::GetRoundTimer() {
+	return roundTimer;
 }

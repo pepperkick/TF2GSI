@@ -66,6 +66,7 @@ public:
 	int GetScore() const;
 	int GetTotalScore() const;
 	int GetDeaths() const;
+	int GetDamage() const;
 	int GetCaptures() const;
 	int GetDefenses() const;
 	int GetRevenges() const;
@@ -76,6 +77,7 @@ public:
 	int GetTeleports() const;
 	int GetKillAssists() const;
 	int GetHeals() const;
+	float GetRespawnTime() const;
 	C_BaseEntity *GetObserverTarget() const;
 	CSteamID GetSteamID() const;
 	TFTeam GetTeam() const;
@@ -120,6 +122,7 @@ public:
 	};
 
 	static bool CheckDependencies();
+	static void FindPlayerResource();
 	static bool classRetrievalAvailable;
 	static bool comparisonAvailable;
 	static bool conditionsRetrievalAvailable;
@@ -137,4 +140,39 @@ private:
 	bool IsLessThanOrEqualTo(const Player &player) const;
 	bool IsGreaterThan(const Player &player) const;
 	bool IsGreaterThanOrEqualTo(const Player &player) const;
+};
+
+class Team {
+public:
+	Team(IClientEntity* entity);
+
+	int GetScore() const;
+	int GetRoundsWon() const;
+	std::string GetName() const;
+	bool IsValid() const;
+	
+	static Team* GetBlueTeam();
+	static Team* GetRedTeam();
+	static bool CheckDependencies();
+	static void FindTeams();
+
+private:
+	CHandle<IClientEntity> teamEntity;
+};
+
+class RoundTimer {
+public:
+	RoundTimer(IClientEntity* entity);
+
+	bool IsPaused() const;
+	float GetTimeRemaining() const;
+	float GetEndTime() const;
+	int GetMaxLength() const;
+	bool IsValid() const;
+
+	static RoundTimer* GetRoundTimer();
+	static void FindRoundTimer();
+
+private:
+	CHandle<IClientEntity> roundEntity;
 };

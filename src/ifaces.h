@@ -23,6 +23,7 @@ class Interfaces {
 
 		static IBaseClientDLL* GetClientDLL() { return pClientDLL; }
 		static IClientEngineTools* GetClientEngineTools() { return pClientEngineTools; }
+		static IEngineTool* GetEngineTools() { return pEngineTool; }
 		static IVEngineClient* GetEngineClient() { return pEngineClient; }
 
 		static IBaseClientDLL *pClientDLL;
