@@ -17,7 +17,7 @@ public:
 		return reinterpret_cast<T>(GetEntityProp(entity, propertyTree));
 	};
 
-	static bool CheckEntityBaseclass(IClientEntity *entity, std::string baseclass);
+	static bool CheckEntityBaseclass(IClientEntity* entity, std::string baseclass);
 
 private:
 	static bool GetSubProp(RecvTable *table, const char *propName, RecvProp *&prop, int &offset);

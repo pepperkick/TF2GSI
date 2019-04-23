@@ -1,4 +1,3 @@
-
 #include "player.h"
 
 #include <cstdint>
@@ -12,11 +11,33 @@
 #include "icliententitylist.h"
 #include "steam/steam_api.h"
 #include "toolframework/ienginetool.h"
+#include "Color.h"
+#include <client_class.h>
+#include "hltvcamera.h"
 
 #include "common.h"
 #include "entities.h"
 #include "exceptions.h"
 #include "ifaces.h"
+#include "camerastate.h"
+
+CHandle<C_BaseEntity> GetPlayerResource() {
+	int maxEntity = Interfaces::pClientEntityList->GetHighestEntityIndex();
+
+	for (int i = 0; i <= maxEntity; i++) {
+		IClientEntity* entity = Interfaces::pClientEntityList->GetClientEntity(i);
+
+		if (!entity) {
+			continue;
+		}
+
+		if (Entities::CheckEntityBaseclass(entity, "TFPlayerResource")) {
+			return dynamic_cast<C_BaseEntity*>(entity);
+		}
+	}
+
+	return null;
+}
 
 Player::Player(int entindex) {
 	playerEntity = Interfaces::pClientEntityList->GetClientEntity(entindex);
@@ -265,6 +286,14 @@ bool Player::CheckCondition(TFCond condition) const {
 	return false;
 }
 
+Vector Player::GetPosition() const {
+	if (IsValid()) {
+		return dynamic_cast<C_BaseEntity*>(playerEntity.Get())->GetAbsOrigin();
+	}
+
+	return {};
+}
+
 TFClassType Player::GetClass() const {
 	if (IsValid()) {
 		return (TFClassType)*Entities::GetEntityProp<int *>(playerEntity.Get(), { "m_iClass" });
@@ -282,11 +311,16 @@ int Player::GetHealth() const {
 }
 
 int Player::GetMaxHealth() const {
+	if (!GetPlayerResource().Get()) return -1;
+
+	char index[4];
+	GetPropIndexString(playerEntity->entindex(), index);
+
 	if (IsValid()) {
-		return dynamic_cast<C_BaseEntity *>(playerEntity.Get())->GetMaxHealth();
+		return (int)* Entities::GetEntityProp<int*>(GetPlayerResource().Get(), { "m_iMaxHealth", index });
 	}
 
-	return 0;
+	return -1;
 }
 
 std::string Player::GetName() const {
@@ -303,7 +337,7 @@ std::string Player::GetName() const {
 
 int Player::GetObserverMode() const {
 	if (IsValid()) {
-		return dynamic_cast<C_BasePlayer *>(playerEntity.Get())->GetObserverMode();
+		return (int)*Entities::GetEntityProp<int*>(playerEntity.Get(), { "m_iObserverMode" });
 	}
 
 	return OBS_MODE_NONE;
@@ -311,10 +345,158 @@ int Player::GetObserverMode() const {
 
 C_BaseEntity *Player::GetObserverTarget() const {
 	if (IsValid()) {
-		return dynamic_cast<C_BasePlayer *>(playerEntity.Get())->GetObserverTarget();
+		return (EHANDLE)* Entities::GetEntityProp<int*>(playerEntity.Get(), { "m_hObserverTarget" });
 	}
 
 	return playerEntity->GetBaseEntity();
+}
+
+int Player::GetDominations() const {
+	if (IsValid()) {
+		return (int)* Entities::GetEntityProp<int*>(playerEntity.Get(), { "m_iDominations" });
+	}
+
+	return 0;
+}
+
+int Player::GetDominated() const {
+	if (IsValid()) {
+		return (int)* Entities::GetEntityProp<int*>(playerEntity.Get(), { "m_bPlayerDominated" });
+	}
+
+	return 0;
+}
+
+int Player::GetDominatedBy() const {
+	if (IsValid()) {
+		return (int)* Entities::GetEntityProp<int*>(playerEntity.Get(), { "m_bPlayerDominatingMe" });
+	}
+
+	return 0;
+}
+
+int Player::GetScore() const {
+	if (!GetPlayerResource().Get()) return -1;
+
+	char index[4];
+	GetPropIndexString(playerEntity->entindex(), index);
+
+	if (IsValid()) {
+		return (int)* Entities::GetEntityProp<int*>(GetPlayerResource().Get(), { "m_iScore", index });
+	}
+
+	return -1;
+}
+
+int Player::GetTotalScore() const {	
+	if (!GetPlayerResource().Get()) return -1;
+
+	char index[4];
+	GetPropIndexString(playerEntity->entindex(), index);
+
+	if (IsValid()) {
+		return (int)* Entities::GetEntityProp<int*>(GetPlayerResource().Get(), { "m_iTotalScore", index });
+	}
+
+	return -1;
+}
+
+int Player::GetDeaths() const {
+	if (!GetPlayerResource().Get()) return -1;
+
+	char index[4];
+	GetPropIndexString(playerEntity->entindex(), index);
+
+	if (IsValid()) {
+		return (int)* Entities::GetEntityProp<int*>(GetPlayerResource().Get(), { "m_iDeaths", index });
+	}
+
+	return -1;
+}
+
+int Player::GetCaptures() const {
+	if (!GetPlayerResource().Get()) return -1;
+
+	char index[4];
+	GetPropIndexString(playerEntity->entindex(), index);
+
+	if (IsValid()) {
+		return (int)* Entities::GetEntityProp<int*>(GetPlayerResource().Get(), { "m_iCaptures", index });
+	}
+
+	return -1;
+}
+
+int Player::GetDefenses() const {
+	if (IsValid()) {
+		return (int)* Entities::GetEntityProp<int*>(playerEntity.Get(), { "m_iDefenses" });
+	}
+
+	return 0;
+}
+
+int Player::GetRevenges() const {
+	if (IsValid()) {
+		return (int)* Entities::GetEntityProp<int*>(playerEntity.Get(), { "m_iRevenge" });
+	}
+
+	return 0;
+}
+
+int Player::GetBuildingsDestroyed() const {
+	if (IsValid()) {
+		return (int)* Entities::GetEntityProp<int*>(playerEntity.Get(), { "m_iBuildingsDestroyed" });
+	}
+
+	return 0;
+}
+
+int Player::GetHeadshots() const {
+	if (IsValid()) {
+		return (int)* Entities::GetEntityProp<int*>(playerEntity.Get(), { "m_iHeadshots" });
+	}
+
+	return 0;
+}
+
+int Player::GetBackstabs() const {
+	if (IsValid()) {
+		return (int)* Entities::GetEntityProp<int*>(playerEntity.Get(), { "m_iBackstabs" });
+	}
+
+	return 0;
+}
+
+int Player::GetHeals() const {
+	if (IsValid()) {
+		return (int)* Entities::GetEntityProp<int*>(playerEntity.Get(), { "m_iHealPoints" });
+	}
+
+	return 0;
+}
+
+int Player::GetUbers() const {
+	if (IsValid()) {
+		return (int)* Entities::GetEntityProp<int*>(playerEntity.Get(), { "m_iInvulns" });
+	}
+
+	return 0;
+}
+
+int Player::GetTeleports() const {
+	if (IsValid()) {
+		return (int)* Entities::GetEntityProp<int*>(playerEntity.Get(), { "m_iTeleports" });
+	}
+
+	return 0;
+}
+
+int Player::GetKillAssists() const {
+	if (IsValid()) {
+		return (int)* Entities::GetEntityProp<int*>(playerEntity.Get(), { "m_iKillAssists" });
+	}
+
+	return 0;
 }
 
 CSteamID Player::GetSteamID() const {
@@ -367,12 +549,71 @@ int Player::GetUserID() const {
 	return 0;
 }
 
+C_BaseCombatWeapon *Player::GetActiveWeapon() const {
+	if (IsValid()) {
+		return dynamic_cast<C_BaseCombatCharacter*>(playerEntity.Get())->GetActiveWeapon();
+	}
+
+	return nullptr;
+}
+
+
 C_BaseCombatWeapon *Player::GetWeapon(int i) const {
 	if (IsValid()) {
 		return dynamic_cast<C_BaseCombatCharacter *>(playerEntity.Get())->GetWeapon(i);
 	}
 
 	return nullptr;
+}
+
+C_BaseCombatWeapon* Player::GetMedigun() const {
+	if (GetClass() == TFClassType::TFClass_Medic) {
+		for (int i = 0; i < MAX_WEAPONS; i++) {
+			C_BaseCombatWeapon* weapon = GetWeapon(i);
+
+			if (weapon && Entities::CheckEntityBaseclass(weapon, "WeaponMedigun")) {
+				return weapon;
+			}
+		}
+	}
+
+	return nullptr;
+}
+
+int Player::GetMedigunType() const {
+	C_BaseCombatWeapon* weapon = GetMedigun();
+
+	if (weapon) {
+		int itemDefinitionIndex = *Entities::GetEntityProp<int*>(weapon, { "m_iItemDefinitionIndex" });
+		TFMedigun type = TFMedigun_Unknown;
+	
+		if (itemDefinitionIndex == 29 || itemDefinitionIndex == 211 || itemDefinitionIndex == 663 || itemDefinitionIndex == 796 || itemDefinitionIndex == 805 || itemDefinitionIndex == 885 || itemDefinitionIndex == 894 || itemDefinitionIndex == 903 || itemDefinitionIndex == 912 || itemDefinitionIndex == 961 || itemDefinitionIndex == 970 || itemDefinitionIndex == 15008 || itemDefinitionIndex == 15010 || itemDefinitionIndex == 15025 || itemDefinitionIndex == 15039 || itemDefinitionIndex == 15050) {
+			type = TFMedigun_MediGun;
+		} 
+		else if (itemDefinitionIndex == 35) {
+			type = TFMedigun_Kritzkrieg;
+		}
+		else if (itemDefinitionIndex == 411) {
+			type = TFMedigun_QuickFix;
+		}
+		else if (itemDefinitionIndex == 998) {
+			type = TFMedigun_Vaccinator;
+		}
+
+		return type;	
+	}
+
+	return TFMedigun_Unknown;
+}
+
+float Player::GetMedigunCharge() const {
+	C_BaseCombatWeapon* weapon = GetMedigun();
+
+	if (weapon) {
+		return *Entities::GetEntityProp<float*>(weapon, { "m_flChargeLevel" });
+	}
+
+	return -1;
 }
 
 bool Player::IsAlive() const {
@@ -506,6 +747,39 @@ Player::Iterator Player::Iterable::begin() {
 
 Player::Iterator Player::Iterable::end() {
 	return Player::end();
+}
+
+Player Player::GetLocalPlayer() {
+	return Interfaces::GetEngineClient()->GetLocalPlayer();
+}
+
+Player Player::GetTargetPlayer() {
+	if (Interfaces::GetEngineClient()->IsHLTV()) {
+		HLTVCameraOverride* hltvcamera = (HLTVCameraOverride*)Interfaces::GetHLTVCamera();
+		int mode = hltvcamera->m_nCameraMode;
+		ConColorMsg(Color(255, 255, 0, 255), "Mode: %d\n", mode);
+
+		if (mode == OBS_MODE_CHASE || mode == OBS_MODE_IN_EYE) {
+			Player targetPlayer = hltvcamera->m_iTraget1;
+
+			if (targetPlayer) return targetPlayer;
+		}
+	}
+	else {
+		Player localPlayer = Player::GetLocalPlayer();
+		if (localPlayer) {
+			int mode = localPlayer.GetObserverMode();
+			ConColorMsg(Color(255, 255, 0, 255), "Mode: %d\n", mode);
+
+			if (mode == OBS_MODE_CHASE || mode == OBS_MODE_IN_EYE) {
+				Player targetPlayer = localPlayer.GetObserverTarget();
+
+				if (targetPlayer) return targetPlayer;
+			}
+		}
+	}
+
+	return nullptr;
 }
 
 bool Player::classRetrievalAvailable = false;

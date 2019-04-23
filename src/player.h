@@ -15,6 +15,9 @@ public:
 	Player(IClientEntity *entity);
 	Player() {};
 
+	static Player GetLocalPlayer();
+	static Player GetTargetPlayer();
+
 	Player& operator=(int entindex);
 	Player& operator=(IClientEntity *entity);
 	Player& operator=(const Player &player);
@@ -50,17 +53,38 @@ public:
 
 	IClientEntity *GetEntity() const;
 
+	Vector GetPosition() const;
 	bool CheckCondition(TFCond condition) const;
 	TFClassType GetClass() const;
 	int GetHealth() const;
 	int GetMaxHealth() const;
 	std::string GetName() const;
 	int GetObserverMode() const;
+	int GetDominations() const;
+	int GetDominated() const;
+	int GetDominatedBy() const;
+	int GetScore() const;
+	int GetTotalScore() const;
+	int GetDeaths() const;
+	int GetCaptures() const;
+	int GetDefenses() const;
+	int GetRevenges() const;
+	int GetBuildingsDestroyed() const;
+	int GetHeadshots() const;
+	int GetBackstabs() const;
+	int GetUbers() const;
+	int GetTeleports() const;
+	int GetKillAssists() const;
+	int GetHeals() const;
 	C_BaseEntity *GetObserverTarget() const;
 	CSteamID GetSteamID() const;
 	TFTeam GetTeam() const;
 	int GetUserID() const;
+	C_BaseCombatWeapon *GetActiveWeapon() const;
 	C_BaseCombatWeapon *GetWeapon(int i) const;
+	C_BaseCombatWeapon *GetMedigun() const;
+	int GetMedigunType() const;
+	float GetMedigunCharge() const;
 	bool IsAlive() const;
 
 	class Iterator {
@@ -102,6 +126,7 @@ public:
 	static bool nameRetrievalAvailable;
 	static bool steamIDRetrievalAvailable;
 	static bool userIDRetrievalAvailable;
+	static bool playerResourceAvailable;
 private:
 	CHandle<IClientEntity> playerEntity;
 

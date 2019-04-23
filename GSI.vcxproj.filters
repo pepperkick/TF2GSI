@@ -30,6 +30,12 @@
     <ClCompile Include="src\ifaces.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\teams.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\teams.h">
+      <Filter>Header Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\common.h">
@@ -51,6 +57,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\tfdefs.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\camerastate.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

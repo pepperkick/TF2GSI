@@ -8,10 +8,6 @@
 #define NULL nullptr
 #endif
 
-#include "common.h"
-#include "player.h"
-#include "ifaces.h"
-
 #include "interface.h"
 #include "filesystem.h"
 #include "engine/iserverplugin.h"
@@ -28,6 +24,14 @@
 #include "KeyValues.h"
 #include "dt_send.h"
 #include "server_class.h"
+#include "cdll_int.h"
+#include "shareddefs.h"
+
+#include "common.h"
+#include "player.h"
+#include "team.h"
+#include "ifaces.h"
+#include "entities.h"
 
 #include <vector>
 #include <set>
@@ -43,6 +47,9 @@ IVEngineServer* engine;
 
 bool poolReady = false;
 bool breakPool = false;
+
+int gAppId; 
+const char* gVersion;
 
 HWND gTimers;
 
@@ -92,46 +99,49 @@ bool Plugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn gameServ
     Interfaces::pGameEventManager->AddListener(this, "teamplay_round_stalemate", false);
     Interfaces::pGameEventManager->AddListener(this, "teamplay_game_over", false);
 
-    g_pGameDLL = (IServerGameDLL*)gameServerFactory(INTERFACEVERSION_SERVERGAMEDLL, nullptr);
-    if(!g_pGameDLL) {
+	gAppId = Interfaces::GetEngineClient()->GetAppID();
+	gVersion = Interfaces::GetEngineClient()->GetProductVersionString();
+
+	if (!Interfaces::GetClientDLL()) {
         PRINT_TAG();
         ConColorMsg(Color(255, 0, 0, 255), "Could not find game DLL interface, aborting load\n");
         return false;
     }
 
-    engine = (IVEngineServer*)interfaceFactory(INTERFACEVERSION_VENGINESERVER, nullptr);
-    if (!engine) {
+	if (!Interfaces::GetClientEngineTools()) {
         PRINT_TAG();
-        ConColorMsg(Color(255, 0, 0, 255), "Could not find engine interface, aborting load\n");
+        ConColorMsg(Color(255, 0, 0, 255), "Could not find engine tools, aborting load\n");
         return false;
     }
 
-    g_pFileSystem = (IFileSystem*)interfaceFactory(FILESYSTEM_INTERFACE_VERSION, nullptr);
-    if(!g_pFileSystem) {
+	if (!Interfaces::GetEngineClient()) {
         PRINT_TAG();
-        ConColorMsg(Color(255, 0, 0, 255), "Could not find filesystem interface, aborting load\n");
+        ConColorMsg(Color(255, 0, 0, 255), "Could not find engine client, aborting load\n");
         return false;
     }
 
-    if(!Player::CheckDependencies()) {
-        PRINT_TAG();
-        ConColorMsg(Color(255, 0, 0, 255), "Required player helper class!\n");
-        return false;
-    }
+	if (!Player::CheckDependencies()) {
+		PRINT_TAG();
+		ConColorMsg(Color(255, 0, 0, 255), "Required player helper class!\n");
+		return false;
+	}
+
+	if (!Team::CheckDependencies()) {
+		PRINT_TAG();
+		ConColorMsg(Color(255, 0, 0, 255), "Required team helper class!\n");
+		return false;
+	}
 
     PRINT_TAG();
     ConColorMsg(Color(255, 255, 0, 255), "Successfully Started!\n");
 
-    std::ostringstream os;
-    os << "plugin started";
-    this->Transmit(os.str().c_str());
-
-    SetTimer(gTimers, 0, 3000, &LoopTimer);
+    SetTimer(gTimers, 0, 25, &LoopTimer);
 
     return true;
 }
 
 void Plugin::Unload() {
+    Interfaces::Unload();
     KillTimer(gTimers, 0);
 }
 
@@ -156,26 +166,112 @@ void Plugin::Transmit(const char* msg) {
 }
 
 void CALLBACK LoopTimer(HWND hwnd, UINT uMsg, UINT timerId, DWORD dwTime) {
+	Player localPlayer = Player::GetLocalPlayer();
+	Player targetPlayer = Player::GetTargetPlayer();
+
+	Team::FindTeams();
+
+	bool isInGame = Interfaces::GetEngineClient()->IsInGame();
+
+	const char* mapName = Interfaces::GetEngineClient()->GetLevelName();
+
     std::ostringstream os;
 
     os << "{";
-    os << "\"players\": [ ";
-    for (Player player : Player::Iterable()) {
-        os << "{ "
-            << "\"name\": \"" << player.GetName().c_str()
-            << "\", \"team\": \"" << player.GetTeam()
-            << "\", \"health\": \"" << player.GetHealth()
-            << "\", \"class\": \"" << player.GetClass()
-            << "\", \"maxHealth\": \"" << player.GetMaxHealth()
-            << "\", \"weapon1\": \"" << player.GetWeapon(0)
-            << "\", \"weapon2\": \"" << player.GetWeapon(1)
-            << "\", \"weapon3\": \"" << player.GetWeapon(2)
-            << "\", \"weapon4\": \"" << player.GetWeapon(3)
-            << "\", \"steamId\": \"" << player.GetSteamID().ConvertToUint64()
-            << "\", \"alive\": \"" << player.IsAlive()
-            << "\" }, ";\
-    }
-    os << " ]";
+        os << "\"provider\": { "
+                << "\"name\": \"Team Fortress 2\", "
+                << "\"appid\": \"" << gAppId << "\", "
+				<< "\"version\": \"" << gVersion << "\""
+            << " }, ";
+
+		if (targetPlayer) {
+			ConColorMsg(Color(255, 255, 0, 255), "Target: %s\n", targetPlayer.GetName().c_str());
+            os << "\"player\": { "
+                << "\"name\": \"" << targetPlayer.GetName().c_str() << "\", "
+                << "\"steamid\": \"" << targetPlayer.GetSteamID().ConvertToUint64() << "\" "
+                << " }, ";
+		}
+
+		bool flag = false;
+
+		if (isInGame) {
+			os << "\"map\": { "
+				<< "\"name\": \"" << mapName << "\", "
+				<< " },";
+
+			if (Team::redTeam->IsValid() && Team::blueTeam->IsValid()) {
+				os << "\"teams\": {"
+					<< "\"team_blue\": {"
+					<< "\"score\": " << Team::blueTeam->GetScore()
+					<< " }, "
+					<< "\"team_red\": {"
+					<< "\"score\": " << Team::redTeam->GetScore()
+					<< " }, "
+					<< " }, ";
+			}
+
+			os << "\"allplayers\": { ";
+			for (Player player : Player::Iterable()) {
+				Vector position = player.GetPosition();
+
+				if (!flag) {
+					flag = true;
+					continue;
+				}
+
+				os << "\"" << player.GetSteamID().ConvertToUint64() << "\": {"
+					<< "\"name\": \"" << player.GetName().c_str()
+					<< "\", \"team\": \"" << player.GetTeam()
+					<< "\", \"health\": \"" << player.GetHealth()
+					<< "\", \"class\": \"" << player.GetClass()
+					<< "\", \"maxHealth\": \"" << player.GetMaxHealth()
+					<< "\", \"weapon1\": \"" << player.GetWeapon(0000)
+					<< "\", \"weapon2\": \"" << player.GetWeapon(0001)
+					<< "\", \"weapon3\": \"" << player.GetWeapon(0002)
+					<< "\", \"weapon4\": \"" << player.GetWeapon(0003)
+					<< "\", \"alive\": \"" << player.IsAlive()
+					<< "\", \"score\": \"" << player.GetTotalScore()
+					<< "\", \"kills\": \"" << player.GetScore()
+					<< "\", \"deaths\": \"" << player.GetDeaths()
+					<< "\", \"position\": \"" << position.x << ", " << position.y << ", " << position.z << "\", ";
+
+				if (player.GetClass() == TFClassType::TFClass_Medic) {
+					int type = player.GetMedigunType();
+					float charge = player.GetMedigunCharge();
+
+					char name[64];
+					sprintf(name, "Unknown");
+
+					switch (type) {
+					case TFMedigun_Unknown:
+						sprintf(name, "Unknown");
+						break;
+					case TFMedigun_MediGun:
+						sprintf(name, "MediGun");
+						break;
+					case TFMedigun_Kritzkrieg:
+						sprintf(name, "Kritzkrieg");
+						break;
+					case TFMedigun_QuickFix:
+						sprintf(name, "QuickFix");
+						break;
+					case TFMedigun_Vaccinator:
+						sprintf(name, "Vaccinator");
+						break;
+					default:
+						sprintf(name, "Unknown");
+					}
+
+					os << "\"medigun\": {"
+						<< "\"type\": \"" << name << "\" , "
+						<< "\"charge\": \"" << charge << "\""
+						<< "}, ";
+				}
+
+				os << "}, ";
+			}
+			os << " }";
+		}
     os << " }";
 
     g_Plugin.Transmit(os.str().c_str());

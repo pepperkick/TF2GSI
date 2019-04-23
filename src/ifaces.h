@@ -21,6 +21,10 @@ class Interfaces {
 		static void Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn gameServerFactory);
 		static void Unload();
 
+		static IBaseClientDLL* GetClientDLL() { return pClientDLL; }
+		static IClientEngineTools* GetClientEngineTools() { return pClientEngineTools; }
+		static IVEngineClient* GetEngineClient() { return pEngineClient; }
+
 		static IBaseClientDLL *pClientDLL;
 		static IClientEngineTools *pClientEngineTools;
 		static IClientEntityList *pClientEntityList;
@@ -37,6 +41,4 @@ class Interfaces {
 
 		static IClientMode *GetClientMode();
 		static C_HLTVCamera *GetHLTVCamera();
-
-		static IBaseClientDLL* GetClientDLL() { return pClientDLL; }
 };
