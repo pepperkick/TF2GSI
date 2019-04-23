@@ -7,7 +7,7 @@ class C_BaseEntity;
 class CSteamID;
 class IClientEntity;
 
-#include "tfdefs.h"
+#include "../tfdefs.h"
 
 class Player {
 public:
@@ -140,39 +140,4 @@ private:
 	bool IsLessThanOrEqualTo(const Player &player) const;
 	bool IsGreaterThan(const Player &player) const;
 	bool IsGreaterThanOrEqualTo(const Player &player) const;
-};
-
-class Team {
-public:
-	Team(IClientEntity* entity);
-
-	int GetScore() const;
-	int GetRoundsWon() const;
-	std::string GetName() const;
-	bool IsValid() const;
-	
-	static Team* GetBlueTeam();
-	static Team* GetRedTeam();
-	static bool CheckDependencies();
-	static void FindTeams();
-
-private:
-	CHandle<IClientEntity> teamEntity;
-};
-
-class RoundTimer {
-public:
-	RoundTimer(IClientEntity* entity);
-
-	bool IsPaused() const;
-	float GetTimeRemaining() const;
-	float GetEndTime() const;
-	int GetMaxLength() const;
-	bool IsValid() const;
-
-	static RoundTimer* GetRoundTimer();
-	static void FindRoundTimer();
-
-private:
-	CHandle<IClientEntity> roundEntity;
 };

@@ -96,7 +96,7 @@
     </ClCompile>
     <ClCompile Include="src\entities.cpp" />
     <ClCompile Include="src\ifaces.cpp" />
-    <ClCompile Include="src\player.cpp" />
+    <ClCompile Include="src\entities\*.cpp" />
     <ClCompile Include="src\tfdefs.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -105,7 +105,7 @@
     <ClInclude Include="src\exceptions.h" />
     <ClInclude Include="src\gamedata.h" />
     <ClInclude Include="src\ifaces.h" />
-    <ClInclude Include="src\player.h" />
+    <ClInclude Include="src\entities\*.h" />
     <ClInclude Include="src\tfdefs.h" />
     <ClInclude Include="src\camerastate.h" />
   </ItemGroup>

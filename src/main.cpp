@@ -29,7 +29,9 @@
 #include "shareddefs.h"
 
 #include "common.h"
-#include "player.h"
+#include "entities/player.h"
+#include "entities/team.h"
+#include "entities/roundtimer.h"
 #include "ifaces.h"
 #include "entities.h"
 
@@ -53,7 +55,10 @@ const char* gVersion;
 
 HWND gTimers;
 
+std::ostringstream extraData;
+
 void CALLBACK LoopTimer(HWND hwnd, UINT uMsg, UINT timerId, DWORD dwTime);
+void SendData();
 
 class Plugin : public IServerPluginCallbacks, IGameEventListener2 {
 public:
@@ -153,6 +158,10 @@ void Plugin::ClientPutInServer(edict_t *pEntity, char const *playername) {
 void Plugin::FireGameEvent(IGameEvent* pEvent) {
     PRINT_TAG();
     ConColorMsg(Color(255, 255, 255, 255), "Event: %s\n", pEvent->GetName());
+
+	if (strcmp(pEvent->GetName(), "player_death")) {
+
+	}
 }
 
 void Plugin::Transmit(const char* msg) {
@@ -166,134 +175,143 @@ void Plugin::Transmit(const char* msg) {
 }
 
 void CALLBACK LoopTimer(HWND hwnd, UINT uMsg, UINT timerId, DWORD dwTime) {
+	SendData();
+}
+
+void SendData() {
 	Player localPlayer = Player::GetLocalPlayer();
 	Player targetPlayer = Player::GetTargetPlayer();
 
 	bool isInGame = Interfaces::GetEngineClient()->IsInGame();
 
 	const char* mapName = Interfaces::GetEngineClient()->GetLevelName();
+	
+	std::string extra = extraData.str();
+	std::ostringstream os;
 
-    std::ostringstream os;
+	os << "{";
+	os << "\"provider\": { "
+		<< "\"name\": \"Team Fortress 2\", "
+		<< "\"appid\": \"" << gAppId << "\", "
+		<< "\"version\": \"" << gVersion << "\""
+		<< " }, ";
 
-    os << "{";
-        os << "\"provider\": { "
-                << "\"name\": \"Team Fortress 2\", "
-                << "\"appid\": \"" << gAppId << "\", "
-				<< "\"version\": \"" << gVersion << "\""
-            << " }, ";
+	if (targetPlayer) {
+		os << "\"player\": { "
+			<< "\"name\": \"" << targetPlayer.GetName().c_str() << "\", "
+			<< "\"steamid\": \"" << targetPlayer.GetSteamID().ConvertToUint64() << "\" "
+			<< " }, ";
+	}
 
-		if (targetPlayer) {
-            os << "\"player\": { "
-                << "\"name\": \"" << targetPlayer.GetName().c_str() << "\", "
-                << "\"steamid\": \"" << targetPlayer.GetSteamID().ConvertToUint64() << "\" "
-                << " }, ";
+	if (extra.length() > 3) {
+		os << extra;
+	}
+
+	bool tvFlag = false, inGameFlag = false;
+
+	if (isInGame) {
+		if (!inGameFlag) {
+			Player::FindPlayerResource();
+			Team::FindTeams();
+			RoundTimer::FindRoundTimer();
+
+			inGameFlag = true;
 		}
 
-		bool tvFlag = false, inGameFlag = false;
+		os << "\"map\": { "
+			<< "\"name\": \"" << mapName << "\", "
+			<< " },";
 
-		if (isInGame) {
-			if (!inGameFlag) {
-				Player::FindPlayerResource();
-				Team::FindTeams();
-				RoundTimer::FindRoundTimer();
+		if (RoundTimer::GetRoundTimer()->IsValid()) {
+			os << "\"round\": {"
+				<< "\"isPuased\": \"" << RoundTimer::GetRoundTimer()->IsPaused() << "\", "
+				<< "\"timeRemaining\": \"" << RoundTimer::GetRoundTimer()->GetTimeRemaining() << "\", "
+				<< "\"maxLength\": \"" << RoundTimer::GetRoundTimer()->GetMaxLength() << "\", "
+				<< "\"endTime\": \"" << RoundTimer::GetRoundTimer()->GetEndTime() - Interfaces::GetEngineTools()->ClientTime() << "\", "
+				<< " }, ";
+		}
 
-				inGameFlag = true;
+		if (Team::GetRedTeam()->IsValid() && Team::GetBlueTeam()->IsValid()) {
+			os << "\"teams\": {"
+				<< "\"team_blue\": {"
+				<< "\"name\": \"" << Team::GetBlueTeam()->GetName().c_str() << "\", "
+				<< "\"score\": \"" << Team::GetBlueTeam()->GetScore() << "\", "
+				<< " }, "
+				<< "\"team_red\": {"
+				<< "\"name\": \"" << Team::GetRedTeam()->GetName().c_str() << "\", "
+				<< "\"score\": \"" << Team::GetRedTeam()->GetScore() << "\", "
+				<< " }, "
+				<< " }, ";
+		}
+
+		os << "\"allplayers\": { ";
+		for (Player player : Player::Iterable()) {
+			Vector position = player.GetPosition();
+
+			if (!tvFlag) {
+				tvFlag = true;
+				continue;
 			}
 
-			os << "\"map\": { "
-				<< "\"name\": \"" << mapName << "\", "
-				<< " },";
+			os << "\"" << player.GetSteamID().ConvertToUint64() << "\": {"
+				<< "\"name\": \"" << player.GetName().c_str()
+				<< "\", \"team\": \"" << player.GetTeam()
+				<< "\", \"health\": \"" << player.GetHealth()
+				<< "\", \"class\": \"" << player.GetClass()
+				<< "\", \"maxHealth\": \"" << player.GetMaxHealth()
+				<< "\", \"weapon1\": \"" << player.GetWeapon(0000)
+				<< "\", \"weapon2\": \"" << player.GetWeapon(0001)
+				<< "\", \"weapon3\": \"" << player.GetWeapon(0002)
+				<< "\", \"weapon4\": \"" << player.GetWeapon(0003)
+				<< "\", \"alive\": \"" << player.IsAlive()
+				<< "\", \"score\": \"" << player.GetTotalScore()
+				<< "\", \"kills\": \"" << player.GetScore()
+				<< "\", \"deaths\": \"" << player.GetDeaths()
+				<< "\", \"damage\": \"" << player.GetDamage()
+				<< "\", \"respawnTime\": \"" << player.GetRespawnTime() - Interfaces::GetEngineTools()->ClientTime()
+				<< "\", \"position\": \"" << position.x << ", " << position.y << ", " << position.z << "\", ";
 
-			if (RoundTimer::GetRoundTimer()->IsValid()) {
-				os << "\"round\": {"
-					<< "\"isPuased\": \"" << RoundTimer::GetRoundTimer()->IsPaused() << "\", "
-					<< "\"timeRemaining\": \"" << RoundTimer::GetRoundTimer()->GetTimeRemaining() << "\", "
-					<< "\"maxLength\": \"" << RoundTimer::GetRoundTimer()->GetMaxLength() << "\", "
-					<< "\"endTime\": \"" << RoundTimer::GetRoundTimer()->GetEndTime() - Interfaces::GetEngineTools()->ClientTime() << "\", "
-					<< " }, ";
-			}
+			if (player.GetClass() == TFClassType::TFClass_Medic) {
+				int type = player.GetMedigunType();
+				float charge = player.GetMedigunCharge();
 
-			if (Team::GetRedTeam()->IsValid() && Team::GetBlueTeam()->IsValid()) {
-				os << "\"teams\": {"
-					<< "\"team_blue\": {"
-					<< "\"name\": \"" << Team::GetBlueTeam()->GetName().c_str() << "\", "
-					<< "\"score\": \"" << Team::GetBlueTeam()->GetScore() << "\", "
-					<< " }, "
-					<< "\"team_red\": {"
-					<< "\"name\": \"" << Team::GetRedTeam()->GetName().c_str() << "\", "
-					<< "\"score\": \"" << Team::GetRedTeam()->GetScore() << "\", "
-					<< " }, "
-					<< " }, ";
-			}
+				char name[64];
+				sprintf(name, "Unknown");
 
-			os << "\"allplayers\": { ";
-			for (Player player : Player::Iterable()) {
-				Vector position = player.GetPosition();
-
-				if (!tvFlag) {
-					tvFlag = true;
-					continue;
-				}
-
-				os << "\"" << player.GetSteamID().ConvertToUint64() << "\": {"
-					<< "\"name\": \"" << player.GetName().c_str()
-					<< "\", \"team\": \"" << player.GetTeam()
-					<< "\", \"health\": \"" << player.GetHealth()
-					<< "\", \"class\": \"" << player.GetClass()
-					<< "\", \"maxHealth\": \"" << player.GetMaxHealth()
-					<< "\", \"weapon1\": \"" << player.GetWeapon(0000)
-					<< "\", \"weapon2\": \"" << player.GetWeapon(0001)
-					<< "\", \"weapon3\": \"" << player.GetWeapon(0002)
-					<< "\", \"weapon4\": \"" << player.GetWeapon(0003)
-					<< "\", \"alive\": \"" << player.IsAlive()
-					<< "\", \"score\": \"" << player.GetTotalScore()
-					<< "\", \"kills\": \"" << player.GetScore()
-					<< "\", \"deaths\": \"" << player.GetDeaths()
-					<< "\", \"damage\": \"" << player.GetDamage()
-					<< "\", \"respawnTime\": \"" << player.GetRespawnTime() - Interfaces::GetEngineTools()->ClientTime()
-					<< "\", \"position\": \"" << position.x << ", " << position.y << ", " << position.z << "\", ";
-
-				if (player.GetClass() == TFClassType::TFClass_Medic) {
-					int type = player.GetMedigunType();
-					float charge = player.GetMedigunCharge();
-
-					char name[64];
+				switch (type) {
+				case TFMedigun_Unknown:
 					sprintf(name, "Unknown");
-
-					switch (type) {
-					case TFMedigun_Unknown:
-						sprintf(name, "Unknown");
-						break;
-					case TFMedigun_MediGun:
-						sprintf(name, "MediGun");
-						break;
-					case TFMedigun_Kritzkrieg:
-						sprintf(name, "Kritzkrieg");
-						break;
-					case TFMedigun_QuickFix:
-						sprintf(name, "QuickFix");
-						break;
-					case TFMedigun_Vaccinator:
-						sprintf(name, "Vaccinator");
-						break;
-					default:
-						sprintf(name, "Unknown");
-					}
-
-					os << "\"medigun\": {"
-						<< "\"type\": \"" << name << "\" , "
-						<< "\"charge\": \"" << charge << "\""
-						<< "}, ";
+					break;
+				case TFMedigun_MediGun:
+					sprintf(name, "MediGun");
+					break;
+				case TFMedigun_Kritzkrieg:
+					sprintf(name, "Kritzkrieg");
+					break;
+				case TFMedigun_QuickFix:
+					sprintf(name, "QuickFix");
+					break;
+				case TFMedigun_Vaccinator:
+					sprintf(name, "Vaccinator");
+					break;
+				default:
+					sprintf(name, "Unknown");
 				}
 
-				os << "}, ";
+				os << "\"medigun\": {"
+					<< "\"type\": \"" << name << "\" , "
+					<< "\"charge\": \"" << charge << "\""
+					<< "}, ";
 			}
-			os << " }";
-		}
-		else {
-			inGameFlag = false;
-		}
-    os << " }";
 
-    g_Plugin.Transmit(os.str().c_str());
+			os << "}, ";
+		}
+		os << " }";
+	}
+	else {
+		inGameFlag = false;
+	}
+	os << " }";
+
+	g_Plugin.Transmit(os.str().c_str());
 }
