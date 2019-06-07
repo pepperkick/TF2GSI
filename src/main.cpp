@@ -32,6 +32,8 @@
 #include "entities/player.h"
 #include "entities/team.h"
 #include "entities/roundtimer.h"
+#include "entities/tfgamerules.h"
+#include "entities/objective.h"
 #include "ifaces.h"
 #include "entities.h"
 
@@ -103,6 +105,7 @@ bool Plugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn gameServ
     Interfaces::pGameEventManager->AddListener(this, "teamplay_round_win", false);
     Interfaces::pGameEventManager->AddListener(this, "teamplay_round_stalemate", false);
     Interfaces::pGameEventManager->AddListener(this, "teamplay_game_over", false);
+    Interfaces::pGameEventManager->AddListener(this, "teamplay_win_panel", false);
 
 	gAppId = Interfaces::GetEngineClient()->GetAppID();
 	gVersion = Interfaces::GetEngineClient()->GetProductVersionString();
@@ -150,26 +153,44 @@ void Plugin::Unload() {
     KillTimer(gTimers, 0);
 }
 
-void Plugin::ClientPutInServer(edict_t *pEntity, char const *playername) {
-    PRINT_TAG();
-    ConColorMsg(Color(255, 255, 255, 255), "Client Joined: %s\n", playername);
-}
+void Plugin::ClientPutInServer(edict_t *pEntity, char const *playername) {}
 
-void Plugin::FireGameEvent(IGameEvent* pEvent) {
-    PRINT_TAG();
-    ConColorMsg(Color(255, 255, 255, 255), "Event: %s\n", pEvent->GetName());
+void Plugin::FireGameEvent(IGameEvent* event) {
+	if (strcmp(event->GetName(), "player_death") == 0) {
+		int victimUserID = event->GetInt("userid", -1);
+		int attackerUserID = event->GetInt("attacker", -1);
+		int assisterUserID = event->GetInt("assister", -1);
+		std::string weapon = event->GetString("weapon");
+		
+		Player victim = Interfaces::pEngineClient->GetPlayerForUserID(victimUserID);
+		Player attacker = Interfaces::pEngineClient->GetPlayerForUserID(attackerUserID);
+		Player assister = Interfaces::pEngineClient->GetPlayerForUserID(assisterUserID);
 
-	if (strcmp(pEvent->GetName(), "player_death")) {
-
+		extraData 
+			<< "\"event\": {"
+			<< "\"name\": \"" << event->GetName() << "\", "
+			<< "\"victim\": \"" << victim.GetSteamID().ConvertToUint64() << "\", "
+			<< "\"attacker\": \"" << attacker.GetSteamID().ConvertToUint64() << "\", "
+			<< "\"assister\": \"" << assister.GetSteamID().ConvertToUint64() << "\", "
+			<< "\"weapon\": \"" << weapon << "\", "
+			<< "}, ";
+	} else if (strcmp(event->GetName(), "teamplay_win_panel") == 0) {
+		extraData 
+			<< "\"event\": {"
+			<< "\"name\": \"" << event->GetName() << "\", "
+			<< "\"team\": \"" <<event->GetInt("winning_team") << "\", "
+			<< "}, ";
 	}
+
+	SendData();
 }
 
 void Plugin::Transmit(const char* msg) {
     HANDLE hPipe;
     LPTSTR lptPipeName = TEXT("\\\\.\\pipe\\tf2-gsi");
 
-    hPipe = CreateFile(lptPipeName, GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL);
-
+    hPipe = CreateFile(lptPipeName, GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+	
     DWORD cbWritten;
     WriteFile(hPipe, msg, strlen(msg), &cbWritten, NULL);
 }
@@ -205,15 +226,20 @@ void SendData() {
 
 	if (extra.length() > 3) {
 		os << extra;
+		extra = "";
+		extraData.str("");
+		extraData.clear();
 	}
-
-	bool tvFlag = false, inGameFlag = false;
+	
+	bool tvFlag = false;
+	bool inGameFlag = false;
 
 	if (isInGame) {
 		if (!inGameFlag) {
 			Player::FindPlayerResource();
 			Team::FindTeams();
-			RoundTimer::FindRoundTimer();
+			TFGameRules::Find();
+			ObjectiveResource::Find();
 
 			inGameFlag = true;
 		}
@@ -222,13 +248,70 @@ void SendData() {
 			<< "\"name\": \"" << mapName << "\", "
 			<< " },";
 
-		if (RoundTimer::GetRoundTimer()->IsValid()) {
-			os << "\"round\": {"
-				<< "\"isPuased\": \"" << RoundTimer::GetRoundTimer()->IsPaused() << "\", "
-				<< "\"timeRemaining\": \"" << RoundTimer::GetRoundTimer()->GetTimeRemaining() << "\", "
-				<< "\"maxLength\": \"" << RoundTimer::GetRoundTimer()->GetMaxLength() << "\", "
-				<< "\"endTime\": \"" << RoundTimer::GetRoundTimer()->GetEndTime() - Interfaces::GetEngineTools()->ClientTime() << "\", "
-				<< " }, ";
+		if (ObjectiveResource::Get()->IsValid()) {
+			ObjectiveResource* objective = ObjectiveResource::Get();
+			bool isKoth = false;
+			char type[24];
+			int numOfCaps = -1;
+
+			sprintf(type, "Unknown");
+
+			if (objective->IsValid()) {
+				numOfCaps = objective->GetNumCP();
+
+				if (numOfCaps == 1) {
+					sprintf(type, "KOTH");
+					isKoth = true;
+				}
+			}
+
+			if (isKoth) {
+				RoundTimer::Find(2);
+				RoundTimer* timer1 = RoundTimer::Get(0);
+				RoundTimer* timer2 = RoundTimer::Get(1);
+
+				float blueTime, redTime;
+
+				if (objective->CapOwner(0) == 2) {
+					redTime = timer2->GetEndTime() - Interfaces::GetEngineTools()->ClientTime();
+					blueTime = timer1->GetTimeRemaining();
+				}
+				else if (objective->CapOwner(0) == 3) {
+					blueTime = timer1->GetEndTime() - Interfaces::GetEngineTools()->ClientTime();
+					redTime = timer2->GetTimeRemaining();
+				}
+				else {
+					redTime = timer1->GetTimeRemaining();
+					blueTime = timer1->GetTimeRemaining();
+				}
+
+				os << "\"round\": {"
+					<< "\"redTimeLeft\": \"" << redTime << "\", "
+					<< "\"blueTimeLeft\": \"" << blueTime << "\", "
+					<< "\"cap0\": {"
+					<< "\"locked\": \"" << objective->IsCapLocked(0) << "\", "
+					<< "\"blocked\": \"" << objective->IsCapBlocked(0) << "\", "
+					<< "\"cappedTeam\": \"" << objective->CapOwner(0) << "\", "
+					<< "\"cappingTeam\": \"" << objective->CappingTeam(0) << "\", "
+					<< "\"pathDistance\": \"" << objective->CapPathDistance(0) << "\", "
+					<< "\"teamInZone\": \"" << objective->CapTeamInZone(0) << "\", "
+					<< "\"unlockTime\": \"" << objective->CapUnlockTime(0) - Interfaces::GetEngineTools()->ClientTime() << "\", "
+					<< "\"capTime\": \"" << objective->CapTimer(0) << "\", "
+					<< " }, "
+					<< " }, ";
+			}
+			else {
+				RoundTimer::Find(1);
+				RoundTimer* timer = RoundTimer::Get(0);
+
+				os << "\"round\": {"
+					<< "\"isPaused\": \"" << timer->IsPaused() << "\", "
+					<< "\"timeRemaining\": \"" << timer->GetTimeRemaining() << "\", "
+					<< "\"maxLength\": \"" << timer->GetMaxLength() << "\", "
+					<< "\"endTime\": \"" << timer->GetEndTime() - Interfaces::GetEngineTools()->ClientTime() << "\", "
+					<< "\"noOfCaps\": \"" << numOfCaps << "\", "
+					<< " }, ";
+			}
 		}
 
 		if (Team::GetRedTeam()->IsValid() && Team::GetBlueTeam()->IsValid()) {
@@ -259,10 +342,6 @@ void SendData() {
 				<< "\", \"health\": \"" << player.GetHealth()
 				<< "\", \"class\": \"" << player.GetClass()
 				<< "\", \"maxHealth\": \"" << player.GetMaxHealth()
-				<< "\", \"weapon1\": \"" << player.GetWeapon(0000)
-				<< "\", \"weapon2\": \"" << player.GetWeapon(0001)
-				<< "\", \"weapon3\": \"" << player.GetWeapon(0002)
-				<< "\", \"weapon4\": \"" << player.GetWeapon(0003)
 				<< "\", \"alive\": \"" << player.IsAlive()
 				<< "\", \"score\": \"" << player.GetTotalScore()
 				<< "\", \"kills\": \"" << player.GetScore()

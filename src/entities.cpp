@@ -70,7 +70,7 @@ void *Entities::GetEntityProp(IClientEntity *entity, std::vector<std::string> pr
 	std::string propertyString = ConvertTreeToString(propertyTree);
 
 	return (void *)((unsigned long)(entity)+(unsigned long)(classPropOffsets[className][propertyString]));
-}
+}	
 
 bool Entities::GetSubProp(RecvTable *table, const char *propName, RecvProp *&prop, int &offset) {
 	for (int i = 0; i < table->GetNumProps(); i++) {

@@ -18,9 +18,6 @@
     <ClCompile Include="src/main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\player.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\tfdefs.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -30,11 +27,20 @@
     <ClCompile Include="src\ifaces.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\teams.cpp">
+    <ClCompile Include="src\entities\*.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\teams.h">
-      <Filter>Header Files</Filter>
+    <ClCompile Include="src\entities\*.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\entities\*.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\entities\*.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\entities\*.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -53,13 +59,25 @@
     <ClInclude Include="src\ifaces.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\player.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\tfdefs.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\camerastate.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\entities\*.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\entities\*.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\entities\*.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\entities\*.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\entities\*.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

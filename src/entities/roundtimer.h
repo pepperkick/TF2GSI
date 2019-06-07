@@ -16,9 +16,9 @@ public:
 	int GetMaxLength() const;
 	bool IsValid() const;
 
-	static RoundTimer* GetRoundTimer();
-	static void FindRoundTimer();
+	static RoundTimer* Get(int);
+	static void Find(int);
 
 private:
-	CHandle<IClientEntity> roundEntity;
+	CHandle<IClientEntity> entity;
 };
