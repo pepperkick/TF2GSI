@@ -27,6 +27,8 @@
 #include "server_class.h"
 #include "cdll_int.h"
 #include "shareddefs.h"
+#include "icliententity.h"
+#include "ehandle.h"
 
 #include "common.h"
 #include "entities/player.h"
@@ -250,7 +252,7 @@ void SendData() {
 
 		if (ObjectiveResource::Get()->IsValid()) {
 			ObjectiveResource* objective = ObjectiveResource::Get();
-			bool isKoth = false;
+			bool isKoth = false, is5cp = false;
 			char type[24];
 			int numOfCaps = -1;
 
@@ -262,6 +264,10 @@ void SendData() {
 				if (numOfCaps == 1) {
 					sprintf(type, "KOTH");
 					isKoth = true;
+				}
+				else if (numOfCaps == 5) {
+					sprintf(type, "5CP");
+					is5cp = true;
 				}
 			}
 
@@ -293,12 +299,57 @@ void SendData() {
 					<< "\"blocked\": \"" << objective->IsCapBlocked(0) << "\", "
 					<< "\"cappedTeam\": \"" << objective->CapOwner(0) << "\", "
 					<< "\"cappingTeam\": \"" << objective->CappingTeam(0) << "\", "
-					<< "\"pathDistance\": \"" << objective->CapPathDistance(0) << "\", "
-					<< "\"teamInZone\": \"" << objective->CapTeamInZone(0) << "\", "
 					<< "\"unlockTime\": \"" << objective->CapUnlockTime(0) - Interfaces::GetEngineTools()->ClientTime() << "\", "
-					<< "\"capTime\": \"" << objective->CapTimer(0) << "\", "
 					<< " }, "
 					<< " }, ";
+			}
+			else if (is5cp) {
+				RoundTimer::Find(1);
+				RoundTimer* timer = RoundTimer::Get(0);
+
+				os << "\"round\": {"
+					<< "\"isPaused\": \"" << timer->IsPaused() << "\", "
+					<< "\"timeRemaining\": \"" << timer->GetTimeRemaining() << "\", "
+					<< "\"maxLength\": \"" << timer->GetMaxLength() << "\", "
+					<< "\"endTime\": \"" << timer->GetEndTime() - Interfaces::GetEngineTools()->ClientTime() << "\", "
+					<< "\"noOfCaps\": \"" << numOfCaps << "\", "
+					<< "\"cap0\": {"
+					<< "\"locked\": \"" << objective->IsCapLocked(0) << "\", "
+					<< "\"blocked\": \"" << objective->IsCapBlocked(0) << "\", "
+					<< "\"cappedTeam\": \"" << objective->CapOwner(0) << "\", "
+					<< "\"cappingTeam\": \"" << objective->CappingTeam(0) << "\", "
+					<< "\"unlockTime\": \"" << objective->CapUnlockTime(0) - Interfaces::GetEngineTools()->ClientTime() << "\", "
+					<< " }, "
+					<< "\"cap1\": {"
+					<< "\"locked\": \"" << objective->IsCapLocked(1) << "\", "
+					<< "\"blocked\": \"" << objective->IsCapBlocked(1) << "\", "
+					<< "\"cappedTeam\": \"" << objective->CapOwner(1) << "\", "
+					<< "\"cappingTeam\": \"" << objective->CappingTeam(1) << "\", "
+					<< "\"unlockTime\": \"" << objective->CapUnlockTime(1) - Interfaces::GetEngineTools()->ClientTime() << "\", "
+					<< " }, "
+					<< "\"cap2\": {"
+					<< "\"locked\": \"" << objective->IsCapLocked(2) << "\", "
+					<< "\"blocked\": \"" << objective->IsCapBlocked(2) << "\", "
+					<< "\"cappedTeam\": \"" << objective->CapOwner(2) << "\", "
+					<< "\"cappingTeam\": \"" << objective->CappingTeam(2) << "\", "
+					<< "\"unlockTime\": \"" << objective->CapUnlockTime(2) - Interfaces::GetEngineTools()->ClientTime() << "\", "
+					<< " }, "
+					<< "\"cap3\": {"
+					<< "\"locked\": \"" << objective->IsCapLocked(3) << "\", "
+					<< "\"blocked\": \"" << objective->IsCapBlocked(3) << "\", "
+					<< "\"cappedTeam\": \"" << objective->CapOwner(3) << "\", "
+					<< "\"cappingTeam\": \"" << objective->CappingTeam(3) << "\", "
+					<< "\"unlockTime\": \"" << objective->CapUnlockTime(3) - Interfaces::GetEngineTools()->ClientTime() << "\", "
+					<< " }, "
+					<< "\"cap4\": {"
+					<< "\"locked\": \"" << objective->IsCapLocked(4) << "\", "
+					<< "\"blocked\": \"" << objective->IsCapBlocked(4) << "\", "
+					<< "\"cappedTeam\": \"" << objective->CapOwner(4) << "\", "
+					<< "\"cappingTeam\": \"" << objective->CappingTeam(4) << "\", "
+					<< "\"unlockTime\": \"" << objective->CapUnlockTime(4) - Interfaces::GetEngineTools()->ClientTime() << "\", "
+					<< " }, "
+					<< " }, ";
+
 			}
 			else {
 				RoundTimer::Find(1);
@@ -319,10 +370,12 @@ void SendData() {
 				<< "\"team_blue\": {"
 				<< "\"name\": \"" << Team::GetBlueTeam()->GetName().c_str() << "\", "
 				<< "\"score\": \"" << Team::GetBlueTeam()->GetScore() << "\", "
+				<< "\"rounds\": \"" << Team::GetBlueTeam()->GetRoundsWon() << "\", "
 				<< " }, "
 				<< "\"team_red\": {"
 				<< "\"name\": \"" << Team::GetRedTeam()->GetName().c_str() << "\", "
 				<< "\"score\": \"" << Team::GetRedTeam()->GetScore() << "\", "
+				<< "\"rounds\": \"" << Team::GetRedTeam()->GetRoundsWon() << "\", "
 				<< " }, "
 				<< " }, ";
 		}
@@ -330,6 +383,7 @@ void SendData() {
 		os << "\"allplayers\": { ";
 		for (Player player : Player::Iterable()) {
 			Vector position = player.GetPosition();
+			const char* name = player.GetName().c_str();
 
 			if (!tvFlag) {
 				tvFlag = true;
@@ -338,6 +392,7 @@ void SendData() {
 
 			os << "\"" << player.GetSteamID().ConvertToUint64() << "\": {"
 				<< "\"name\": \"" << player.GetName().c_str()
+				<< "\", \"steamid\": \"" << player.GetSteamID().ConvertToUint64()
 				<< "\", \"team\": \"" << player.GetTeam()
 				<< "\", \"health\": \"" << player.GetHealth()
 				<< "\", \"class\": \"" << player.GetClass()
@@ -350,12 +405,70 @@ void SendData() {
 				<< "\", \"respawnTime\": \"" << player.GetRespawnTime() - Interfaces::GetEngineTools()->ClientTime()
 				<< "\", \"position\": \"" << position.x << ", " << position.y << ", " << position.z << "\", ";
 
+			if (player.CheckCondition(TFCond::TFCond_Ubercharged)) {
+				os << "\"isUbered\": true";
+			}
+
+			/*if (player.CheckCondition(TFCond::TFCond_Bleeding)) {
+				os << "\"isBleeding\": true";
+			}
+
+			if (player.CheckCondition(TFCond::TFCond_Bonked)) {
+				os << "\"isBonked\": true";
+			}
+
+			if (player.CheckCondition(TFCond::TFCond_MarkedForDeath)) {
+				os << "\"isMarkedForDeath\": true";
+			}
+
+			if (player.CheckCondition(TFCond::TFCond_MarkedForDeath)) {
+				os << "\"isMarkedForDeath\": true";
+			}
+
+			if (player.CheckCondition(TFCond::TFCond_Cloaked)) {
+				os << "\"isCloaked\": true";
+			}
+
+			if (player.CheckCondition(TFCond::TFCond_CloakFlicker)) {
+				os << "\"isCloakFlickering\": true";
+			}
+
+			if (player.CheckCondition(TFCond::TFCond_Disguised)) {
+				os << "\"isDisguised\": true";
+			}*/
+
+			CHandle<IClientEntity> weapon = CHandle<IClientEntity>(player.GetActiveWeapon());
+
+			if (weapon) {
+				os << "\"weapon\": {"
+					<< "\"class\": \"" << Entities::GetEntityClassname(weapon) << "\", "
+					<< "\"clip1\": " << *Entities::GetEntityProp<int*>(weapon, { "m_iClip1" }) << ", "
+					<< "\"clip2\": " << *Entities::GetEntityProp<int*>(weapon, { "m_iClip2" }) << ", "
+					<< "}, ";
+			}
+
 			if (player.GetClass() == TFClassType::TFClass_Medic) {
 				int type = player.GetMedigunType();
 				float charge = player.GetMedigunCharge();
+				bool isHealing = player.IsMedigunHealing();
 
 				char name[64];
 				sprintf(name, "Unknown");
+
+				std::ostringstream targetId;
+				targetId.str("");
+				targetId.clear();
+
+				// TODO: Fix this
+				if (isHealing) {
+					CHandle<IClientEntity> target = player.GetMedigunTarget();
+					if (target) {
+						int index = target.GetEntryIndex();
+						Player healing = Player(index);
+						
+						targetId << healing.GetSteamID().ConvertToUint64();
+					}
+				}
 
 				switch (type) {
 				case TFMedigun_Unknown:
@@ -379,7 +492,8 @@ void SendData() {
 
 				os << "\"medigun\": {"
 					<< "\"type\": \"" << name << "\" , "
-					<< "\"charge\": \"" << charge << "\""
+					<< "\"charge\": \"" << charge << "\", "
+					<< "\"target\": \"" << targetId.str() << "\""
 					<< "}, ";
 			}
 

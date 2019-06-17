@@ -95,6 +95,12 @@ bool Entities::GetSubProp(RecvTable *table, const char *propName, RecvProp *&pro
 	return false;
 }
 
+const char* Entities::GetEntityClassname(IClientEntity* entity) {
+	ClientClass* clientClass = entity->GetClientClass();
+	
+	return clientClass->GetName();
+}
+
 bool Entities::CheckEntityBaseclass(IClientEntity *entity, std::string baseclass) {
 	ClientClass *clientClass = entity->GetClientClass();
 

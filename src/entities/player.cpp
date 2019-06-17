@@ -495,6 +495,14 @@ int Player::GetKillAssists() const {
 	return 0;
 }
 
+int Player::GetKillstreak(int i) const {
+	if (IsValid()) {
+		return (int)* Entities::GetEntityProp<int*>(playerEntity.Get(), { "m_nStreaks", std::to_string(i) });
+	}
+
+	return -1;
+}
+
 float Player::GetRespawnTime() const {
 	if (!playerResource.Get()) return -1;
 
@@ -558,9 +566,9 @@ int Player::GetUserID() const {
 	return 0;
 }
 
-C_BaseCombatWeapon *Player::GetActiveWeapon() const {
+int Player::GetActiveWeapon() const {
 	if (IsValid()) {
-		return dynamic_cast<C_BaseCombatCharacter*>(playerEntity.Get())->GetActiveWeapon();
+		return *Entities::GetEntityProp<int*>(playerEntity.Get(), { "m_hActiveWeapon" });
 	}
 
 	return nullptr;
@@ -575,6 +583,16 @@ C_BaseCombatWeapon *Player::GetWeapon(int i) const {
 	return nullptr;
 }
 
+int Player::GetWeaponClip(int i) const {
+	C_BaseCombatWeapon* weapon = GetWeapon(i);
+
+	if (weapon) {
+		return *Entities::GetEntityProp<int*>(weapon, { "m_iClip1" });
+	}
+
+	return -1;
+}
+
 C_BaseCombatWeapon* Player::GetMedigun() const {
 	if (GetClass() == TFClassType::TFClass_Medic) {
 		for (int i = 0; i < MAX_WEAPONS; i++) {
@@ -587,6 +605,24 @@ C_BaseCombatWeapon* Player::GetMedigun() const {
 	}
 
 	return nullptr;
+}
+
+bool Player::IsMedigunHealing() const {
+	C_BaseCombatWeapon* weapon = GetMedigun();
+
+	if (weapon) {
+		return *Entities::GetEntityProp<bool *>(weapon, { "m_bHealing" });
+	}
+
+	return false;
+}
+
+int Player::GetMedigunTarget() const {
+	C_BaseCombatWeapon* weapon = GetMedigun();
+	
+	if (weapon) {
+		return *Entities::GetEntityProp<int *>(weapon, { "m_hHealingTarget" });
+	}
 }
 
 int Player::GetMedigunType() const {

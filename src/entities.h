@@ -17,11 +17,12 @@ public:
 		return reinterpret_cast<T>(GetEntityProp(entity, propertyTree));
 	};
 
+	static const char* Entities::GetEntityClassname(IClientEntity* entity);
 	static bool CheckEntityBaseclass(IClientEntity* entity, std::string baseclass);
 
 private:
 	static bool GetSubProp(RecvTable *table, const char *propName, RecvProp *&prop, int &offset);
-	static void *GetEntityProp(IClientEntity *entity, std::vector<std::string> propertyTree);
+	static void* GetEntityProp(IClientEntity* entity, std::vector<std::string> propertyTree);
 
 	static bool CheckClassBaseclass(ClientClass *clientClass, std::string baseclass);
 	static bool CheckTableBaseclass(RecvTable *sTable, std::string baseclass);

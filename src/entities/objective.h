@@ -19,6 +19,7 @@ public:
 	int ObjectiveResource::CapTeamInZone(int) const;
 	bool ObjectiveResource::IsCapBlocked(int) const;
 	int ObjectiveResource::CapOwner(int) const;
+	int ObjectiveResource::CapTeamCapTime(int i) const;
 	bool IsValid() const;
 
 	static ObjectiveResource* Get();

@@ -98,6 +98,17 @@ bool ObjectiveResource::IsCapBlocked(int i) const {
 	return -1;
 }
 
+int ObjectiveResource::CapTeamCapTime(int i) const {
+	char index[4];
+	sprintf(index, "%03d", i);
+
+	if (IsValid()) {
+		return (int)* Entities::GetEntityProp<int*>(this->entity, { "m_flTeamCapTime", index });
+	}
+
+	return -1;
+}
+
 int ObjectiveResource::CapOwner(int i) const {
 	char index[4];
 	sprintf(index, "%03d", i);
