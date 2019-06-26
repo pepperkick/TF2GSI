@@ -98,12 +98,34 @@ bool ObjectiveResource::IsCapBlocked(int i) const {
 	return -1;
 }
 
-int ObjectiveResource::CapTeamCapTime(int i) const {
+int ObjectiveResource::GetPlayersOnCap(int i) const {
 	char index[4];
 	sprintf(index, "%03d", i);
 
 	if (IsValid()) {
-		return (int)* Entities::GetEntityProp<int*>(this->entity, { "m_flTeamCapTime", index });
+		return (int)* Entities::GetEntityProp<int*>(this->entity, { "m_iNumTeamMembers", index });
+	}
+
+	return -1;
+}
+
+float ObjectiveResource::CapTeamCapTime(int i) const {
+	char index[4];
+	sprintf(index, "%03d", i);
+
+	if (IsValid()) {
+		return (int)* Entities::GetEntityProp<float *>(this->entity, { "m_flTeamCapTime", index });
+	}
+
+	return -1;
+}
+
+int ObjectiveResource::CapTimerTimes(int i) const {
+	char index[4];
+	sprintf(index, "%03d", i);
+
+	if (IsValid()) {
+		return (int)* Entities::GetEntityProp<int*>(this->entity, { "m_flCPTimerTimes", index });
 	}
 
 	return -1;

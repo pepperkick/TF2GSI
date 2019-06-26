@@ -28,6 +28,7 @@ IPrediction *Interfaces::pPrediction = nullptr;
 IVModelInfoClient *Interfaces::pModelInfoClient = nullptr;
 IVRenderView *Interfaces::pRenderView = nullptr;
 CSteamAPIContext *Interfaces::pSteamAPIContext = nullptr;
+ICvar *Interfaces::pCVar = nullptr;
 
 bool Interfaces::steamLibrariesAvailable = false;
 
@@ -92,6 +93,7 @@ void Interfaces::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn game
 	pGameEventManager = (IGameEventManager2 *)interfaceFactory(INTERFACEVERSION_GAMEEVENTSMANAGER2, nullptr);
 	pModelInfoClient = (IVModelInfoClient *)interfaceFactory(VMODELINFO_CLIENT_INTERFACE_VERSION, nullptr);
 	pRenderView = (IVRenderView *)interfaceFactory(VENGINE_RENDERVIEW_INTERFACE_VERSION, nullptr);
+	pCVar = (ICvar*)interfaceFactory(CVAR_INTERFACE_VERSION, NULL);
 	
 	CreateInterfaceFn gameClientFactory;
 	pEngineTool->GetClientFactory(gameClientFactory);

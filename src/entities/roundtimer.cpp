@@ -1,6 +1,8 @@
 #include "roundtimer.h"
 
 #include "icliententitylist.h"
+#include "icvar.h"
+#include <convar.h>
 
 #include "../common.h"
 #include "../entities.h"
@@ -11,6 +13,8 @@ RoundTimer* timer2;
 RoundTimer* timer3;
 RoundTimer* timer4;
 
+ConCommand* pause_ = nullptr;
+
 RoundTimer::RoundTimer(IClientEntity* entity) {
 	this->entity = entity;
 }
@@ -18,6 +22,14 @@ RoundTimer::RoundTimer(IClientEntity* entity) {
 bool RoundTimer::IsPaused() const {
 	if (IsValid()) {
 		return (bool)* Entities::GetEntityProp<bool*>(entity, { "m_bTimerPaused" });
+	}
+
+	return -1;
+}
+
+int RoundTimer::GetState() const {
+	if (IsValid()) {
+		return (int)* Entities::GetEntityProp<int*>(entity, { "m_nState" });
 	}
 
 	return -1;

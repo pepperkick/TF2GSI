@@ -11,6 +11,7 @@ public:
 	RoundTimer(IClientEntity* entity);
 
 	bool IsPaused() const;
+	int GetState() const;
 	float GetTimeRemaining() const;
 	float GetEndTime() const;
 	int GetMaxLength() const;

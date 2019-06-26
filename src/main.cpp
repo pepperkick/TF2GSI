@@ -46,6 +46,8 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+#define TEAM_ARRAY( index, team ) (index + (team * MAX_CONTROL_POINTS))
+
 IServerGameDLL* g_pGameDLL;
 IFileSystem* g_pFileSystem;
 IHLTVDirector* g_pHLTVDirector;
@@ -291,6 +293,10 @@ void SendData() {
 					blueTime = timer1->GetTimeRemaining();
 				}
 
+				int cappingTeam = objective->CappingTeam(0);
+				int playersOnCap = objective->GetPlayersOnCap(TEAM_ARRAY(0, cappingTeam));
+				float time = objective->CapTeamCapTime(TEAM_ARRAY(0, cappingTeam));
+
 				os << "\"round\": {"
 					<< "\"redTimeLeft\": \"" << redTime << "\", "
 					<< "\"blueTimeLeft\": \"" << blueTime << "\", "
@@ -298,8 +304,10 @@ void SendData() {
 					<< "\"locked\": \"" << objective->IsCapLocked(0) << "\", "
 					<< "\"blocked\": \"" << objective->IsCapBlocked(0) << "\", "
 					<< "\"cappedTeam\": \"" << objective->CapOwner(0) << "\", "
-					<< "\"cappingTeam\": \"" << objective->CappingTeam(0) << "\", "
+					<< "\"cappingTeam\": \"" << cappingTeam << "\", "
 					<< "\"unlockTime\": \"" << objective->CapUnlockTime(0) - Interfaces::GetEngineTools()->ClientTime() << "\", "
+					<< "\"playersOnCap\": " << playersOnCap << ", "
+					<< "\"percentage\": " << time << ", "
 					<< " }, "
 					<< " }, ";
 			}
@@ -307,48 +315,33 @@ void SendData() {
 				RoundTimer::Find(1);
 				RoundTimer* timer = RoundTimer::Get(0);
 
+				ConVar *cvar_timelimt = Interfaces::GetCvar()->FindVar("mp_timelimit");
+				int timelimt = cvar_timelimt->GetInt() * 60;
+
 				os << "\"round\": {"
-					<< "\"isPaused\": \"" << timer->IsPaused() << "\", "
-					<< "\"timeRemaining\": \"" << timer->GetTimeRemaining() << "\", "
+					<< "\"isPaused\": \"" << Interfaces::GetEngineClient()->IsPaused() << "\", "
+					<< "\"timeRemaining\": \"" << timelimt - Interfaces::GetEngineTools()->ClientTime() << "\", "
 					<< "\"maxLength\": \"" << timer->GetMaxLength() << "\", "
 					<< "\"endTime\": \"" << timer->GetEndTime() - Interfaces::GetEngineTools()->ClientTime() << "\", "
-					<< "\"noOfCaps\": \"" << numOfCaps << "\", "
-					<< "\"cap0\": {"
-					<< "\"locked\": \"" << objective->IsCapLocked(0) << "\", "
-					<< "\"blocked\": \"" << objective->IsCapBlocked(0) << "\", "
-					<< "\"cappedTeam\": \"" << objective->CapOwner(0) << "\", "
-					<< "\"cappingTeam\": \"" << objective->CappingTeam(0) << "\", "
-					<< "\"unlockTime\": \"" << objective->CapUnlockTime(0) - Interfaces::GetEngineTools()->ClientTime() << "\", "
-					<< " }, "
-					<< "\"cap1\": {"
-					<< "\"locked\": \"" << objective->IsCapLocked(1) << "\", "
-					<< "\"blocked\": \"" << objective->IsCapBlocked(1) << "\", "
-					<< "\"cappedTeam\": \"" << objective->CapOwner(1) << "\", "
-					<< "\"cappingTeam\": \"" << objective->CappingTeam(1) << "\", "
-					<< "\"unlockTime\": \"" << objective->CapUnlockTime(1) - Interfaces::GetEngineTools()->ClientTime() << "\", "
-					<< " }, "
-					<< "\"cap2\": {"
-					<< "\"locked\": \"" << objective->IsCapLocked(2) << "\", "
-					<< "\"blocked\": \"" << objective->IsCapBlocked(2) << "\", "
-					<< "\"cappedTeam\": \"" << objective->CapOwner(2) << "\", "
-					<< "\"cappingTeam\": \"" << objective->CappingTeam(2) << "\", "
-					<< "\"unlockTime\": \"" << objective->CapUnlockTime(2) - Interfaces::GetEngineTools()->ClientTime() << "\", "
-					<< " }, "
-					<< "\"cap3\": {"
-					<< "\"locked\": \"" << objective->IsCapLocked(3) << "\", "
-					<< "\"blocked\": \"" << objective->IsCapBlocked(3) << "\", "
-					<< "\"cappedTeam\": \"" << objective->CapOwner(3) << "\", "
-					<< "\"cappingTeam\": \"" << objective->CappingTeam(3) << "\", "
-					<< "\"unlockTime\": \"" << objective->CapUnlockTime(3) - Interfaces::GetEngineTools()->ClientTime() << "\", "
-					<< " }, "
-					<< "\"cap4\": {"
-					<< "\"locked\": \"" << objective->IsCapLocked(4) << "\", "
-					<< "\"blocked\": \"" << objective->IsCapBlocked(4) << "\", "
-					<< "\"cappedTeam\": \"" << objective->CapOwner(4) << "\", "
-					<< "\"cappingTeam\": \"" << objective->CappingTeam(4) << "\", "
-					<< "\"unlockTime\": \"" << objective->CapUnlockTime(4) - Interfaces::GetEngineTools()->ClientTime() << "\", "
-					<< " }, "
-					<< " }, ";
+					<< "\"noOfCaps\": \"" << numOfCaps << "\", ";
+				
+				for (int i = 0; i < numOfCaps; i++) {
+					int cappingTeam = objective->CappingTeam(i);
+					int playersOnCap = objective->GetPlayersOnCap(TEAM_ARRAY(i, cappingTeam));
+					float time = objective->CapTeamCapTime(TEAM_ARRAY(0, cappingTeam));
+
+					os << "\"cap" << i << "\": {"
+						<< "\"locked\": \"" << objective->IsCapLocked(i) << "\", "
+						<< "\"blocked\": \"" << objective->IsCapBlocked(i) << "\", "
+						<< "\"cappedTeam\": \"" << objective->CapOwner(i) << "\", "
+						<< "\"cappingTeam\": \"" << cappingTeam << "\", "
+						<< "\"unlockTime\": \"" << objective->CapUnlockTime(i) - Interfaces::GetEngineTools()->ClientTime() << "\", "
+						<< "\"playersOnCap\": " << playersOnCap << ", "
+						<< "\"percentage\": " << time << ", "
+						<< " }, ";
+				}
+
+				os << " }, ";
 
 			}
 			else {
@@ -404,38 +397,40 @@ void SendData() {
 				<< "\", \"damage\": \"" << player.GetDamage()
 				<< "\", \"respawnTime\": \"" << player.GetRespawnTime() - Interfaces::GetEngineTools()->ClientTime()
 				<< "\", \"position\": \"" << position.x << ", " << position.y << ", " << position.z << "\", ";
+			
+			if (player.FindCondition()) {
+				if (player.CheckCondition(TFCond::TFCond_Ubercharged)) {
+					os << "\"isUbered\": true, ";
+				}
 
-			if (player.CheckCondition(TFCond::TFCond_Ubercharged)) {
-				os << "\"isUbered\": true";
+				if (player.CheckCondition(TFCond::TFCond_Bleeding)) {
+					os << "\"isBleeding\": true, ";
+				}
+
+				if (player.CheckCondition(TFCond::TFCond_Bonked)) {
+					os << "\"isBonked\": true, ";
+				}
+
+				if (player.CheckCondition(TFCond::TFCond_MarkedForDeath)) {
+					os << "\"isMarkedForDeath\": true, ";
+				}
+
+				if (player.CheckCondition(TFCond::TFCond_MarkedForDeath)) {
+					os << "\"isMarkedForDeath\": true, ";
+				}
+
+				if (player.CheckCondition(TFCond::TFCond_Cloaked)) {
+					os << "\"isCloaked\": true, ";
+				}
+
+				if (player.CheckCondition(TFCond::TFCond_CloakFlicker)) {
+					os << "\"isCloakFlickering\": true, ";
+				}
+
+				if (player.CheckCondition(TFCond::TFCond_Disguised)) {
+					os << "\"isDisguised\": true, ";
+				}
 			}
-
-			/*if (player.CheckCondition(TFCond::TFCond_Bleeding)) {
-				os << "\"isBleeding\": true";
-			}
-
-			if (player.CheckCondition(TFCond::TFCond_Bonked)) {
-				os << "\"isBonked\": true";
-			}
-
-			if (player.CheckCondition(TFCond::TFCond_MarkedForDeath)) {
-				os << "\"isMarkedForDeath\": true";
-			}
-
-			if (player.CheckCondition(TFCond::TFCond_MarkedForDeath)) {
-				os << "\"isMarkedForDeath\": true";
-			}
-
-			if (player.CheckCondition(TFCond::TFCond_Cloaked)) {
-				os << "\"isCloaked\": true";
-			}
-
-			if (player.CheckCondition(TFCond::TFCond_CloakFlicker)) {
-				os << "\"isCloakFlickering\": true";
-			}
-
-			if (player.CheckCondition(TFCond::TFCond_Disguised)) {
-				os << "\"isDisguised\": true";
-			}*/
 
 			CHandle<IClientEntity> weapon = CHandle<IClientEntity>(player.GetActiveWeapon());
 

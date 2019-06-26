@@ -54,6 +54,7 @@ public:
 	IClientEntity *GetEntity() const;
 
 	Vector GetPosition() const;
+	bool FindCondition();
 	bool CheckCondition(TFCond condition) const;
 	TFClassType GetClass() const;
 	int GetHealth() const;
@@ -136,6 +137,7 @@ public:
 	static bool playerResourceAvailable;
 private:
 	CHandle<IClientEntity> playerEntity;
+	unsigned int playerConditions[4];
 
 	bool IsValid() const;
 	bool IsEqualTo(const Player &player) const;

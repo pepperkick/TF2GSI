@@ -230,39 +230,44 @@ IClientEntity *Player::GetEntity() const {
 	return playerEntity;
 }
 
-bool Player::CheckCondition(TFCond condition) const {
+bool Player::FindCondition() {
 	if (IsValid()) {
-		uint32_t playerCond = *Entities::GetEntityProp<uint32_t *>(playerEntity.Get(), { "m_nPlayerCond" });
-		uint32_t condBits = *Entities::GetEntityProp<uint32_t *>(playerEntity.Get(), { "_condition_bits" });
-		uint32_t playerCondEx = *Entities::GetEntityProp<uint32_t *>(playerEntity.Get(), { "m_nPlayerCondEx" });
-		uint32_t playerCondEx2 = *Entities::GetEntityProp<uint32_t *>(playerEntity.Get(), { "m_nPlayerCondEx2" });
-		uint32_t playerCondEx3 = *Entities::GetEntityProp<uint32_t *>(playerEntity.Get(), { "m_nPlayerCondEx3" });
+		uint32_t playerCond = *Entities::GetEntityProp<uint32_t*>(playerEntity.Get(), { "m_nPlayerCond" });
+		uint32_t condBits = *Entities::GetEntityProp<uint32_t*>(playerEntity.Get(), { "_condition_bits" });
+		uint32_t playerCondEx = *Entities::GetEntityProp<uint32_t*>(playerEntity.Get(), { "m_nPlayerCondEx" });
+		uint32_t playerCondEx2 = *Entities::GetEntityProp<uint32_t*>(playerEntity.Get(), { "m_nPlayerCondEx2" });
+		uint32_t playerCondEx3 = *Entities::GetEntityProp<uint32_t*>(playerEntity.Get(), { "m_nPlayerCondEx3" });
 
-		uint32_t conditions[4];
-		conditions[0] = playerCond | condBits;
-		conditions[1] = playerCondEx;
-		conditions[2] = playerCondEx2;
-		conditions[3] = playerCondEx3;
+		playerConditions[0] = playerCond | condBits;
+		playerConditions[1] = playerCondEx;
+		playerConditions[2] = playerCondEx2;
+		playerConditions[3] = playerCondEx3;
 
-		if (condition < 32) {
-			if (conditions[0] & (1 << condition)) {
-				return true;
-			}
+		return true;
+	}
+
+	return false;
+}
+
+bool Player::CheckCondition(TFCond condition) const {
+	if (condition < 32) {
+		if (playerConditions[0] & (1 << condition)) {
+			return true;
 		}
-		else if (condition < 64) {
-			if (conditions[1] & (1 << (condition - 32))) {
-				return true;
-			}
+	}
+	else if (condition < 64) {
+		if (playerConditions[1] & (1 << (condition - 32))) {
+			return true;
 		}
-		else if (condition < 96) {
-			if (conditions[2] & (1 << (condition - 64))) {
-				return true;
-			}
+	}
+	else if (condition < 96) {
+		if (playerConditions[2] & (1 << (condition - 64))) {
+			return true;
 		}
-		else if (condition < 128) {
-			if (conditions[3] & (1 << (condition - 96))) {
-				return true;
-			}
+	}
+	else if (condition < 128) {
+		if (playerConditions[3] & (1 << (condition - 96))) {
+			return true;
 		}
 	}
 
