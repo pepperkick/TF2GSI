@@ -2,10 +2,13 @@
 
 #include "icliententitylist.h"
 #include "client_class.h"
+#include "shareddefs.h"
 
 #include "../common.h"
 #include "../entities.h"
 #include "../ifaces.h"
+
+#define TEAM_ARRAY( index, team ) (index + (team * MAX_CONTROL_POINTS))
 
 ObjectiveResource* instance;
 
@@ -27,6 +30,17 @@ bool ObjectiveResource::IsCapLocked(int i) const {
 
 	if (IsValid()) {
 		return (bool)* Entities::GetEntityProp<bool*>(this->entity, { "m_bCPLocked", index });
+	}
+
+	return -1;
+}
+
+bool ObjectiveResource::DoesCPScaleWithPlayers(int i) const {
+	char index[4];
+	sprintf(index, "%03d", i);
+
+	if (IsValid()) {
+		return (bool)* Entities::GetEntityProp<bool*>(this->entity, { "m_bCPCapRateScalesWithPlayers", index });
 	}
 
 	return -1;
@@ -114,7 +128,7 @@ float ObjectiveResource::CapTeamCapTime(int i) const {
 	sprintf(index, "%03d", i);
 
 	if (IsValid()) {
-		return (int)* Entities::GetEntityProp<float *>(this->entity, { "m_flTeamCapTime", index });
+		return (float)* Entities::GetEntityProp<float *>(this->entity, { "m_flTeamCapTime", index });
 	}
 
 	return -1;
@@ -137,6 +151,17 @@ int ObjectiveResource::CapOwner(int i) const {
 
 	if (IsValid()) {
 		return (int)* Entities::GetEntityProp<int*>(this->entity, { "m_iOwner", index });
+	}
+
+	return -1;
+}
+
+float ObjectiveResource::GetCapLazyPerc(int i) const {
+	char index[4];
+	sprintf(index, "%03d", i);
+
+	if (IsValid()) {
+		return (float)* Entities::GetEntityProp<float*>(this->entity, { "m_flLazyCapPerc", index });
 	}
 
 	return -1;
@@ -165,4 +190,8 @@ void ObjectiveResource::Find() {
 
 ObjectiveResource* ObjectiveResource::Get() {
 	return instance;
+}
+
+void ObjectiveResource::Set(ObjectiveResource* entity) {
+	instance = entity;
 }

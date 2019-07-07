@@ -60,6 +60,16 @@ bool Entities::RetrieveClassPropOffset(std::string className, std::vector<std::s
 	return false;
 }
 
+int Entities::GetClassPropOffset(std::string className, std::vector<std::string> propertyTree) {
+	if (!RetrieveClassPropOffset(className, propertyTree)) {
+		return -1;
+	}
+
+	std::string propertyString = ConvertTreeToString(propertyTree);
+
+	return classPropOffsets[className][propertyString];
+}
+
 void *Entities::GetEntityProp(IClientEntity *entity, std::vector<std::string> propertyTree) {
 	std::string className = entity->GetClientClass()->GetName();
 
@@ -101,8 +111,10 @@ const char* Entities::GetEntityClassname(IClientEntity* entity) {
 	return clientClass->GetName();
 }
 
-bool Entities::CheckEntityBaseclass(IClientEntity *entity, std::string baseclass) {
-	ClientClass *clientClass = entity->GetClientClass();
+bool Entities::CheckEntityBaseclass(IClientEntity* entity, std::string baseclass) {
+	if (!entity) return false;
+
+	ClientClass* clientClass = entity->GetClientClass();
 
 	if (clientClass) {
 		return CheckClassBaseclass(clientClass, baseclass);
@@ -140,4 +152,39 @@ bool Entities::CheckTableBaseclass(RecvTable *sTable, std::string baseclass) {
 	}
 
 	return false;
+}
+
+ClientClass* Entities::GetClientClass(const char* className)
+{
+	ClientClass* cc = Interfaces::GetClientDLL()->GetAllClasses();
+	while (cc)
+	{
+		if (!stricmp(className, cc->GetName()))
+			return cc;
+
+		cc = cc->m_pNext;
+	}
+
+	return nullptr;
+}
+
+RecvProp* Entities::FindRecvProp(const char* className, const char* propName, bool recursive)
+{
+	auto cc = GetClientClass(className);
+	if (!cc)
+		return nullptr;
+
+	return FindRecvProp(cc->m_pRecvTable, propName, recursive);
+}
+
+RecvProp* Entities::FindRecvProp(RecvTable* table, const char* propName, bool recursive)
+{
+	for (int i = 0; i < table->m_nProps; i++)
+	{
+		auto& prop = table->m_pProps[i];
+		if (!strcmp(prop.m_pVarName, propName))
+			return &prop;
+	}
+
+	return nullptr;
 }

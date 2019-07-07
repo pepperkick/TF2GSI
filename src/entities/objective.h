@@ -2,6 +2,7 @@
 
 #include "ehandle.h"
 
+class C_BaseTeamObjectiveResource;
 class IClientEntity;
 
 #include "../tfdefs.h"
@@ -19,12 +20,17 @@ public:
 	int ObjectiveResource::CapTeamInZone(int) const;
 	bool ObjectiveResource::IsCapBlocked(int) const;
 	int ObjectiveResource::CapOwner(int) const;
-	float ObjectiveResource::CapTeamCapTime(int i) const;
-	int ObjectiveResource::GetPlayersOnCap(int i) const;
-	int ObjectiveResource::CapTimerTimes(int i) const;
+	float ObjectiveResource::CapTeamCapTime(int) const;
+	int ObjectiveResource::GetPlayersOnCap(int) const;
+	int ObjectiveResource::CapTimerTimes(int) const;
+	float ObjectiveResource::GetCapLazyPerc(int) const;
+	bool ObjectiveResource::DoesCPScaleWithPlayers(int i) const;
+	float ObjectiveResource::GetCapTimeLeft(int) const;
+	float ObjectiveResource::GetTimeLeft(int) const;
 	bool IsValid() const;
 
 	static ObjectiveResource* Get();
+	static void Set(ObjectiveResource*);
 	static void Find();
 
 private:

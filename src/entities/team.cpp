@@ -72,6 +72,14 @@ Team* Team::GetRedTeam() {
 	return redTeam;
 }
 
+void Team::SetBlueTeam(Team* team) {
+	blueTeam = team;
+}
+
+void Team::SetRedTeam(Team* team) {
+	redTeam = team;
+}
+
 bool Team::CheckDependencies() {
 	bool ready = true;
 

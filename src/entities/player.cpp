@@ -21,7 +21,8 @@
 #include "../ifaces.h"
 #include "../camerastate.h"
 
-CHandle<C_BaseEntity> playerResource;
+CHandle<IClientEntity> playerResource;
+
 Player::Player(int entindex) {
 	playerEntity = Interfaces::pClientEntityList->GetClientEntity(entindex);
 }
@@ -238,10 +239,10 @@ bool Player::FindCondition() {
 		uint32_t playerCondEx2 = *Entities::GetEntityProp<uint32_t*>(playerEntity.Get(), { "m_nPlayerCondEx2" });
 		uint32_t playerCondEx3 = *Entities::GetEntityProp<uint32_t*>(playerEntity.Get(), { "m_nPlayerCondEx3" });
 
-		playerConditions[0] = playerCond | condBits;
-		playerConditions[1] = playerCondEx;
-		playerConditions[2] = playerCondEx2;
-		playerConditions[3] = playerCondEx3;
+		playerConditions[0] = (playerCond | condBits) || 0;
+		playerConditions[1] = playerCondEx || 0;
+		playerConditions[2] = playerCondEx2 || 0;
+		playerConditions[3] = playerCondEx3 || 0;
 
 		return true;
 	}
@@ -306,6 +307,19 @@ int Player::GetMaxHealth() const {
 
 	if (IsValid()) {
 		return (int)* Entities::GetEntityProp<int*>(playerResource.Get(), { "m_iMaxHealth", index });
+	}
+
+	return -1;
+}
+
+int Player::GetMaxBuffedHealth() const {
+	if (!playerResource.Get()) return -1;
+
+	char index[4];
+	GetPropIndexString(playerEntity->entindex(), index);
+
+	if (IsValid()) {
+		return (int)* Entities::GetEntityProp<int*>(playerResource.Get(), { "m_iMaxBuffedHealth", index });
 	}
 
 	return -1;
@@ -402,6 +416,19 @@ int Player::GetDeaths() const {
 	return -1;
 }
 
+int Player::GetHealing() const {
+	if (!playerResource.Get()) return -1;
+
+	char index[4];
+	GetPropIndexString(playerEntity->entindex(), index);
+
+	if (IsValid()) {
+		return (int)* Entities::GetEntityProp<int*>(playerResource.Get(), { "m_iHealing", index });
+	}
+
+	return -1;
+}
+
 int Player::GetDamage() const {
 	if (!playerResource.Get()) return -1;
 
@@ -410,6 +437,14 @@ int Player::GetDamage() const {
 
 	if (IsValid()) {
 		return (int)* Entities::GetEntityProp<int*>(playerResource.Get(), { "m_iDamage", index });
+	}
+
+	return -1;
+}
+
+int Player::GetTotalDamage() const {
+	if (IsValid()) {
+		return (int)* Entities::GetEntityProp<int*>(playerEntity.Get(), { "m_ScoreData", "m_iDamageDone" });
 	}
 
 	return -1;
@@ -494,7 +529,7 @@ int Player::GetTeleports() const {
 
 int Player::GetKillAssists() const {
 	if (IsValid()) {
-		return (int)* Entities::GetEntityProp<int*>(playerEntity.Get(), { "m_iKillAssists" });
+		return (int)* Entities::GetEntityProp<int*>(playerEntity.Get(), { "m_ScoreData", "m_iKillAssists" });
 	}
 
 	return 0;
@@ -549,6 +584,22 @@ CSteamID Player::GetSteamID() const {
 	return CSteamID();
 }
 
+int Player::GetDisguiseTeam() const {
+	if (IsValid()) {
+		return (int)* Entities::GetEntityProp<int*>(playerEntity.Get(), { "m_nDisguiseTeam" });
+	}
+
+	return 0;
+}
+
+int Player::GetDisguiseClass() const {
+	if (IsValid()) {
+		return (int)* Entities::GetEntityProp<int*>(playerEntity.Get(), { "m_nDisguiseClass" });
+	}
+
+	return 0;
+}
+
 TFTeam Player::GetTeam() const {
 	if (IsValid()) {
 		TFTeam team = (TFTeam)dynamic_cast<C_BaseEntity *>(playerEntity.Get())->GetTeamNumber();
@@ -579,23 +630,75 @@ int Player::GetActiveWeapon() const {
 	return nullptr;
 }
 
+int Player::GetWeaponAmmo(int i) const {
+	char index[4];
+	sprintf(index, "%03d", i);
 
-C_BaseCombatWeapon *Player::GetWeapon(int i) const {
 	if (IsValid()) {
-		return dynamic_cast<C_BaseCombatCharacter *>(playerEntity.Get())->GetWeapon(i);
+		return *Entities::GetEntityProp<int*>(playerEntity.Get(), { "m_iAmmo", index });
 	}
 
 	return nullptr;
 }
 
-int Player::GetWeaponClip(int i) const {
-	C_BaseCombatWeapon* weapon = GetWeapon(i);
+C_BaseCombatWeapon* Player::GetWeapon(int i) const {
+	if (IsValid()) {
+		return dynamic_cast<C_BaseCombatCharacter*>(playerEntity.Get())->GetWeapon(i);
+	}
 
-	if (weapon) {
-		return *Entities::GetEntityProp<int*>(weapon, { "m_iClip1" });
+	return nullptr;
+}
+
+int Player::GetWeaponDefinationIndex(C_BaseCombatWeapon* weapon) const {
+	if (IsValid()) {
+		return *Entities::GetEntityProp<int*>(weapon, { "m_iItemDefinitionIndex" });
+	}
+
+	return nullptr;
+}
+
+int Player::IsWearingWeapon() const {
+	int maxEntity = Interfaces::pClientEntityList->GetHighestEntityIndex();
+
+	for (int i = 0; i <= maxEntity; i++) {
+		IClientEntity* entity = Interfaces::pClientEntityList->GetClientEntity(i);
+
+		if (!entity) {
+			continue;
+		}
+
+		if (Entities::CheckEntityBaseclass(entity, "CTFWearableItem")) {
+			int* owner = (int*)Entities::GetEntityProp<int*>(entity, { "m_hOwnerEntity" });
+			int* index = (int*)Entities::GetEntityProp<int*>(entity, { "m_iItemDefinitionIndex" });
+
+			if (*owner == playerEntity.GetEntryIndex()) {
+				return *index;
+			}
+
+			break;
+		}
 	}
 
 	return -1;
+}
+
+C_BaseCombatWeapon* Player::GetWeaponIndexByClass(const char* wepclass) {
+	std::string s = wepclass;
+	s.erase(0, 1);
+	
+	for (int i = 0; i < MAX_WEAPONS; i++) {
+		C_BaseCombatWeapon* weapon = GetWeapon(i);
+
+		if (weapon) {
+			const char* wep = Entities::GetEntityClassname(weapon);
+
+			if (Entities::CheckEntityBaseclass(weapon, s)) {
+				return weapon;
+			}
+		}
+	}
+
+	return nullptr;
 }
 
 C_BaseCombatWeapon* Player::GetMedigun() const {
@@ -628,6 +731,8 @@ int Player::GetMedigunTarget() const {
 	if (weapon) {
 		return *Entities::GetEntityProp<int *>(weapon, { "m_hHealingTarget" });
 	}
+
+	return nullptr;
 }
 
 int Player::GetMedigunType() const {
@@ -818,7 +923,6 @@ Player Player::GetTargetPlayer() {
 		Player localPlayer = Player::GetLocalPlayer();
 		if (localPlayer) {
 			int mode = localPlayer.GetObserverMode();
-			ConColorMsg(Color(255, 255, 0, 255), "Mode: %d\n", mode);
 
 			if (mode == OBS_MODE_CHASE || mode == OBS_MODE_IN_EYE) {
 				Player targetPlayer = localPlayer.GetObserverTarget();
@@ -937,4 +1041,8 @@ void Player::FindPlayerResource() {
 			break;
 		}
 	}
+}
+
+void Player::SetPlayerResource(CHandle<IClientEntity> entity) {
+	playerResource = entity;
 }

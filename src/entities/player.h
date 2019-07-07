@@ -59,6 +59,7 @@ public:
 	TFClassType GetClass() const;
 	int GetHealth() const;
 	int GetMaxHealth() const;
+	int GetMaxBuffedHealth() const;
 	std::string GetName() const;
 	int GetObserverMode() const;
 	int GetDominations() const;
@@ -72,6 +73,11 @@ public:
 	int GetDefenses() const;
 	int GetRevenges() const;
 	int GetBuildingsDestroyed() const;
+	int GetWeaponAmmo(int i) const;
+	int GetHealing() const;
+	C_BaseCombatWeapon* GetWeaponIndexByClass(const char* wepclass);
+	int GetWeaponDefinationIndex(C_BaseCombatWeapon* weapon) const;
+	int IsWearingWeapon() const;
 	int GetHeadshots() const;
 	int GetBackstabs() const;
 	int GetUbers() const;
@@ -93,6 +99,9 @@ public:
 	int GetMedigunType() const;
 	float GetMedigunCharge() const;
 	bool IsAlive() const;
+	int GetDisguiseTeam() const;
+	int GetDisguiseClass() const;
+	int GetTotalDamage() const;
 
 	class Iterator {
 		friend class Player;
@@ -128,6 +137,7 @@ public:
 
 	static bool CheckDependencies();
 	static void FindPlayerResource();
+	static void SetPlayerResource(CHandle<IClientEntity>);
 	static bool classRetrievalAvailable;
 	static bool comparisonAvailable;
 	static bool conditionsRetrievalAvailable;
@@ -135,6 +145,7 @@ public:
 	static bool steamIDRetrievalAvailable;
 	static bool userIDRetrievalAvailable;
 	static bool playerResourceAvailable;
+
 private:
 	CHandle<IClientEntity> playerEntity;
 	unsigned int playerConditions[4];

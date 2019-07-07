@@ -60,6 +60,14 @@ int TFGameRules::GetBlueKOTHTimer() const {
 	return -1;
 }
 
+float TFGameRules::GetMapResetTime() const {
+	if (IsValid()) {
+		return (float)* Entities::GetEntityProp<float*>(this->entity, { "m_flMapResetTime" });
+	}
+
+	return -1;
+}
+
 bool TFGameRules::IsValid() const {
 	return entity.IsValid() && Entities::CheckEntityBaseclass(this->entity, "TFGameRulesProxy");
 }
@@ -83,4 +91,8 @@ void TFGameRules::Find() {
 
 TFGameRules* TFGameRules::Get() {
 	return instance;
+}
+
+void TFGameRules::Set(TFGameRules* entity) {
+	instance = entity;
 }

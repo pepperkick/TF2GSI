@@ -17,9 +17,10 @@ public:
 
 	static Team* GetBlueTeam();
 	static Team* GetRedTeam();
+	static void SetBlueTeam(Team*);
+	static void SetRedTeam(Team*);
 	static bool CheckDependencies();
 	static void FindTeams();
-
 private:
 	CHandle<IClientEntity> teamEntity;
 };

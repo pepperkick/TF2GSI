@@ -28,6 +28,7 @@
 #include "cdll_int.h"
 #include "shareddefs.h"
 #include "icliententity.h"
+#include "icliententitylist.h"
 #include "ehandle.h"
 
 #include "common.h"
@@ -36,6 +37,7 @@
 #include "entities/roundtimer.h"
 #include "entities/tfgamerules.h"
 #include "entities/objective.h"
+#include "entities/teamplayroundrules.h"
 #include "ifaces.h"
 #include "entities.h"
 
@@ -55,9 +57,17 @@ IVEngineServer* engine;
 
 bool poolReady = false;
 bool breakPool = false;
+bool inGameFlag = false;
+bool inOvertime = false;
 
+float mapStartTime = 0;
 int gAppId; 
 const char* gVersion;
+
+float m_flCapTimeLeft[MAX_CONTROL_POINTS] = { 0.0f };
+float m_flCapLastThinkTime[MAX_CONTROL_POINTS] = { 0.0f };
+int m_nPlayersOnCap[MAX_CONTROL_POINTS] = { 0 };
+CHandle<IClientEntity> m_hActiveWeapon[MAX_PLAYERS] = { nullptr };
 
 HWND gTimers;
 
@@ -107,9 +117,13 @@ bool Plugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn gameServ
     Interfaces::pGameEventManager->AddListener(this, "teamplay_round_start", false);
     Interfaces::pGameEventManager->AddListener(this, "teamplay_round_active", false);
     Interfaces::pGameEventManager->AddListener(this, "teamplay_round_win", false);
-    Interfaces::pGameEventManager->AddListener(this, "teamplay_round_stalemate", false);
+	Interfaces::pGameEventManager->AddListener(this, "teamplay_round_stalemate", false);
+	Interfaces::pGameEventManager->AddListener(this, "teamplay_point_captured", false);
+	Interfaces::pGameEventManager->AddListener(this, "teamplay_overtime_begin", false);
+	Interfaces::pGameEventManager->AddListener(this, "teamplay_overtime_end", false);
     Interfaces::pGameEventManager->AddListener(this, "teamplay_game_over", false);
-    Interfaces::pGameEventManager->AddListener(this, "teamplay_win_panel", false);
+	Interfaces::pGameEventManager->AddListener(this, "teamplay_win_panel", false);
+	Interfaces::pGameEventManager->AddListener(this, "controlpoint_updatecapping", false);
 
 	gAppId = Interfaces::GetEngineClient()->GetAppID();
 	gVersion = Interfaces::GetEngineClient()->GetProductVersionString();
@@ -147,7 +161,7 @@ bool Plugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn gameServ
     PRINT_TAG();
     ConColorMsg(Color(255, 255, 0, 255), "Successfully Started!\n");
 
-    SetTimer(gTimers, 0, 25, &LoopTimer);
+    SetTimer(gTimers, 0, 125, &LoopTimer);
 
     return true;
 }
@@ -160,7 +174,7 @@ void Plugin::Unload() {
 void Plugin::ClientPutInServer(edict_t *pEntity, char const *playername) {}
 
 void Plugin::FireGameEvent(IGameEvent* event) {
-	if (strcmp(event->GetName(), "player_death") == 0) {
+	if (!strcmp(event->GetName(), "player_death")) {
 		int victimUserID = event->GetInt("userid", -1);
 		int attackerUserID = event->GetInt("attacker", -1);
 		int assisterUserID = event->GetInt("assister", -1);
@@ -178,15 +192,45 @@ void Plugin::FireGameEvent(IGameEvent* event) {
 			<< "\"assister\": \"" << assister.GetSteamID().ConvertToUint64() << "\", "
 			<< "\"weapon\": \"" << weapon << "\", "
 			<< "}, ";
-	} else if (strcmp(event->GetName(), "teamplay_win_panel") == 0) {
-		extraData 
+
+		SendData();
+	}
+	else if (!strcmp(event->GetName(), "teamplay_win_panel")) {
+		extraData
 			<< "\"event\": {"
 			<< "\"name\": \"" << event->GetName() << "\", "
-			<< "\"team\": \"" <<event->GetInt("winning_team") << "\", "
+			<< "\"team\": \"" << event->GetInt("winning_team") << "\", "
 			<< "}, ";
-	}
 
-	SendData();
+		SendData();
+	}
+	else if (!strcmp(event->GetName(), "teamplay_point_captured")) {
+		int index = event->GetInt("cp", -1);
+
+		if (index == -1) return;
+
+		m_flCapTimeLeft[index] = 0.0f;
+		m_flCapLastThinkTime[index] = 0;
+	}
+	else if (!strcmp(event->GetName(), "teamplay_overtime_begin")) {
+		inOvertime = true;
+	}
+	else if (!strcmp(event->GetName(), "teamplay_overtime_end")) {
+		inOvertime = false;
+	}
+	else if (!strcmp(event->GetName(), "controlpoint_updatecapping")) {
+		int index = event->GetInt("index", -1);
+
+		if (index == -1) return;
+
+		if (!ObjectiveResource::Get())
+			ObjectiveResource::Find();
+
+		int team = ObjectiveResource::Get()->CappingTeam(index);
+
+		m_flCapTimeLeft[index] = ObjectiveResource::Get()->CapTeamCapTime(TEAM_ARRAY(index, team));
+		m_flCapLastThinkTime[index] = Interfaces::GetEngineTools()->ClientTime();
+	}
 }
 
 void Plugin::Transmit(const char* msg) {
@@ -236,16 +280,56 @@ void SendData() {
 	}
 	
 	bool tvFlag = false;
-	bool inGameFlag = false;
 
 	if (isInGame) {
 		if (!inGameFlag) {
-			Player::FindPlayerResource();
-			Team::FindTeams();
-			TFGameRules::Find();
-			ObjectiveResource::Find();
+			int maxEntity = Interfaces::pClientEntityList->GetHighestEntityIndex();
 
+			for (int i = 0; i <= maxEntity; i++) {
+				IClientEntity* entity = Interfaces::pClientEntityList->GetClientEntity(i);
+
+				if (!entity) {
+					continue;
+				}
+
+				if (Entities::CheckEntityBaseclass(entity, "TFPlayerResource")) {
+					Player::SetPlayerResource(dynamic_cast<IClientEntity*>(entity));
+				}
+
+				if (Entities::CheckEntityBaseclass(entity, "TFTeam")) {
+					int* team = Entities::GetEntityProp<int*>(entity, { "m_iTeamNum" });
+
+					if (*team == TFTeam_Blue) {
+						Team::SetBlueTeam(new Team(entity));
+					}
+					else if (*team == TFTeam_Red) {
+						Team::SetRedTeam(new Team(entity));
+					}
+				}
+
+				if (Entities::CheckEntityBaseclass(entity, "TFGameRulesProxy")) {
+					TFGameRules::Set(new TFGameRules(entity));
+				}
+
+				if (Entities::CheckEntityBaseclass(entity, "BaseTeamObjectiveResource")) {
+					ObjectiveResource::Set(new ObjectiveResource(entity));
+				}
+
+				if (Entities::CheckEntityBaseclass(entity, "TeamplayRoundBasedRulesProxy")) {
+					TeamPlayRoundRules::Set(new TeamPlayRoundRules(entity));
+				}
+			}
+
+			for (int i = 0; i < MAX_CONTROL_POINTS; i++) {
+				m_flCapTimeLeft[i] = 0.0f;
+				m_flCapLastThinkTime[i] = 0.0f;
+				m_nPlayersOnCap[i] = 0;
+			}
+
+			inOvertime = false;
 			inGameFlag = true;
+
+			mapStartTime = Interfaces::GetEngineTools()->ClientTime();
 		}
 
 		os << "\"map\": { "
@@ -272,6 +356,50 @@ void SendData() {
 					is5cp = true;
 				}
 			}
+			
+			for (int index = 0; index < numOfCaps; index++) {
+				int team = ObjectiveResource::Get()->CappingTeam(index);
+				int cappers = ObjectiveResource::Get()->GetPlayersOnCap(TEAM_ARRAY(index, team));
+				float curtime = Interfaces::GetEngineTools()->ClientTime();
+				ConVar* cavr_detoriatetime = Interfaces::GetCvar()->FindVar("mp_capdeteriorate_time");
+
+				if (m_flCapTimeLeft[index]) {
+					bool bDeteriorateNormally = true;
+
+					if (cappers > 0) {
+						float flReduction = curtime - m_flCapLastThinkTime[index];
+
+						if (ObjectiveResource::Get()->DoesCPScaleWithPlayers(index)) {
+							for (int iPlayer = 1; iPlayer < cappers; iPlayer++) {
+								flReduction += ((curtime - m_flCapLastThinkTime[index]) / (float)(iPlayer + 1));
+							}
+						}
+
+						if (ObjectiveResource::Get()->CapTeamInZone(index) == team) {
+							bDeteriorateNormally = false;
+							m_flCapTimeLeft[index] -= flReduction;
+						}
+						else if (ObjectiveResource::Get()->CapOwner(index) == TEAM_UNASSIGNED && ObjectiveResource::Get()->CapTeamInZone(index) != TEAM_UNASSIGNED) {
+							bDeteriorateNormally = false;
+							m_flCapTimeLeft[index] += flReduction;
+						}
+					}
+
+					if (bDeteriorateNormally) {
+						float flCapLength = ObjectiveResource::Get()->CapTeamCapTime(TEAM_ARRAY(index, team));
+						float flDecreaseScale = ObjectiveResource::Get()->DoesCPScaleWithPlayers(index) ? cavr_detoriatetime->GetFloat() : flCapLength;
+						float flDecrease = (flCapLength / flDecreaseScale) * (curtime - m_flCapLastThinkTime[index]);
+
+						if (inOvertime) {
+							flDecrease *= 6;
+						}
+
+						m_flCapTimeLeft[index] += flDecrease;
+					}
+				}
+
+				m_flCapLastThinkTime[index] = curtime;
+			}
 
 			if (isKoth) {
 				RoundTimer::Find(2);
@@ -295,10 +423,25 @@ void SendData() {
 
 				int cappingTeam = objective->CappingTeam(0);
 				int playersOnCap = objective->GetPlayersOnCap(TEAM_ARRAY(0, cappingTeam));
-				float time = objective->CapTeamCapTime(TEAM_ARRAY(0, cappingTeam));
+				float teamTime = objective->CapTeamCapTime(TEAM_ARRAY(0, cappingTeam));
+				float time = objective->GetCapLazyPerc(0);
+				float percentage = 0.0f;
+
+				if (m_flCapTimeLeft[0] > 0) {
+					if (teamTime <= 0)
+						percentage = 0.0f;
+
+					float flElapsedTime = teamTime - m_flCapTimeLeft[0];
+
+					if (flElapsedTime > teamTime)
+						percentage = 1.0f;
+
+					percentage = (flElapsedTime / teamTime);
+				}
 
 				os << "\"round\": {"
-					<< "\"redTimeLeft\": \"" << redTime << "\", "
+					<< "\"gameType\": \"" << type << "\", "
+					<< "\"redTimeLeft\": \"" << redTime << "\", "	
 					<< "\"blueTimeLeft\": \"" << blueTime << "\", "
 					<< "\"cap0\": {"
 					<< "\"locked\": \"" << objective->IsCapLocked(0) << "\", "
@@ -307,7 +450,7 @@ void SendData() {
 					<< "\"cappingTeam\": \"" << cappingTeam << "\", "
 					<< "\"unlockTime\": \"" << objective->CapUnlockTime(0) - Interfaces::GetEngineTools()->ClientTime() << "\", "
 					<< "\"playersOnCap\": " << playersOnCap << ", "
-					<< "\"percentage\": " << time << ", "
+					<< "\"percentage\": " << percentage << ", "
 					<< " }, "
 					<< " }, ";
 			}
@@ -315,20 +458,37 @@ void SendData() {
 				RoundTimer::Find(1);
 				RoundTimer* timer = RoundTimer::Get(0);
 
-				ConVar *cvar_timelimt = Interfaces::GetCvar()->FindVar("mp_timelimit");
-				int timelimt = cvar_timelimt->GetInt() * 60;
+				ConVar *cvar_timelimit = Interfaces::GetCvar()->FindVar("mp_timelimit");
+				int timelimit = cvar_timelimit->GetInt() * 60;
+				float timepast = Interfaces::GetEngineTools()->ClientTime() - mapStartTime;
+				float timeleft = timelimit - timepast;
 
 				os << "\"round\": {"
+					<< "\"gameType\": \"" << type << "\", "
 					<< "\"isPaused\": \"" << Interfaces::GetEngineClient()->IsPaused() << "\", "
-					<< "\"timeRemaining\": \"" << timelimt - Interfaces::GetEngineTools()->ClientTime() << "\", "
 					<< "\"maxLength\": \"" << timer->GetMaxLength() << "\", "
-					<< "\"endTime\": \"" << timer->GetEndTime() - Interfaces::GetEngineTools()->ClientTime() << "\", "
+					<< "\"matchTimeLeft\": \"" << timeleft << "\", "
+					<< "\"roundTimeLeft\": \"" << timer->GetEndTime() - Interfaces::GetEngineTools()->ClientTime() << "\", "
 					<< "\"noOfCaps\": \"" << numOfCaps << "\", ";
 				
 				for (int i = 0; i < numOfCaps; i++) {
 					int cappingTeam = objective->CappingTeam(i);
 					int playersOnCap = objective->GetPlayersOnCap(TEAM_ARRAY(i, cappingTeam));
-					float time = objective->CapTeamCapTime(TEAM_ARRAY(0, cappingTeam));
+					float teamTime = objective->CapTeamCapTime(TEAM_ARRAY(i, cappingTeam));
+					float time = objective->GetCapLazyPerc(i);
+					float percentage = 0.0f;
+
+					if (m_flCapTimeLeft[i] > 0) {
+						if (teamTime <= 0)
+							percentage = 0.0f;
+
+						float flElapsedTime = teamTime - m_flCapTimeLeft[i];
+
+						if (flElapsedTime > teamTime)
+							percentage = 1.0f;
+
+						percentage = (flElapsedTime / teamTime);
+					}
 
 					os << "\"cap" << i << "\": {"
 						<< "\"locked\": \"" << objective->IsCapLocked(i) << "\", "
@@ -337,7 +497,8 @@ void SendData() {
 						<< "\"cappingTeam\": \"" << cappingTeam << "\", "
 						<< "\"unlockTime\": \"" << objective->CapUnlockTime(i) - Interfaces::GetEngineTools()->ClientTime() << "\", "
 						<< "\"playersOnCap\": " << playersOnCap << ", "
-						<< "\"percentage\": " << time << ", "
+						<< "\"percentage\": " << percentage << ", "
+						<< "\"teamTime\": " << teamTime << ", "
 						<< " }, ";
 				}
 
@@ -378,6 +539,14 @@ void SendData() {
 			Vector position = player.GetPosition();
 			const char* name = player.GetName().c_str();
 
+			float timepast = Interfaces::GetEngineTools()->ClientTime() - mapStartTime;
+			int minspast = floor(timepast / 60);
+			int dpm = 0;
+
+			if (minspast > 0) {
+				dpm = player.GetDamage() / minspast;
+			}
+
 			if (!tvFlag) {
 				tvFlag = true;
 				continue;
@@ -388,17 +557,26 @@ void SendData() {
 				<< "\", \"steamid\": \"" << player.GetSteamID().ConvertToUint64()
 				<< "\", \"team\": \"" << player.GetTeam()
 				<< "\", \"health\": \"" << player.GetHealth()
-				<< "\", \"class\": \"" << player.GetClass()
 				<< "\", \"maxHealth\": \"" << player.GetMaxHealth()
+				<< "\", \"maxBuffedHealth\": \"" << player.GetMaxBuffedHealth()
+				<< "\", \"class\": \"" << player.GetClass()
 				<< "\", \"alive\": \"" << player.IsAlive()
 				<< "\", \"score\": \"" << player.GetTotalScore()
 				<< "\", \"kills\": \"" << player.GetScore()
 				<< "\", \"deaths\": \"" << player.GetDeaths()
+				<< "\", \"assists\": \"" << player.GetKillAssists()
 				<< "\", \"damage\": \"" << player.GetDamage()
+				<< "\", \"totalDamage\": \"" << player.GetTotalDamage()
+				<< "\", \"healing\": \"" << player.GetHealing()
+				<< "\", \"dpm\": \"" << dpm
 				<< "\", \"respawnTime\": \"" << player.GetRespawnTime() - Interfaces::GetEngineTools()->ClientTime()
 				<< "\", \"position\": \"" << position.x << ", " << position.y << ", " << position.z << "\", ";
 			
 			if (player.FindCondition()) {
+				if (player.CheckCondition(TFCond::TFCond_Slowed)) {
+					os << "\"isSlowed\": true, ";
+				}
+
 				if (player.CheckCondition(TFCond::TFCond_Ubercharged)) {
 					os << "\"isUbered\": true, ";
 				}
@@ -415,8 +593,13 @@ void SendData() {
 					os << "\"isMarkedForDeath\": true, ";
 				}
 
-				if (player.CheckCondition(TFCond::TFCond_MarkedForDeath)) {
+				if (player.CheckCondition(TFCond::TFCond_MarkedForDeathSilent)) {
 					os << "\"isMarkedForDeath\": true, ";
+					os << "\"isMarkedForDeathSilent\": true, ";
+				}
+
+				if (player.CheckCondition(TFCond::TFCond_SpeedBuffAlly)) {
+					os << "\"isAllySpeedBuffed\": true, ";
 				}
 
 				if (player.CheckCondition(TFCond::TFCond_Cloaked)) {
@@ -432,14 +615,24 @@ void SendData() {
 				}
 			}
 
-			CHandle<IClientEntity> weapon = CHandle<IClientEntity>(player.GetActiveWeapon());
+			if (player.IsAlive()) {
+				CHandle<IClientEntity> weapon = CHandle<IClientEntity>(player.GetActiveWeapon());
 
-			if (weapon) {
-				os << "\"weapon\": {"
-					<< "\"class\": \"" << Entities::GetEntityClassname(weapon) << "\", "
-					<< "\"clip1\": " << *Entities::GetEntityProp<int*>(weapon, { "m_iClip1" }) << ", "
-					<< "\"clip2\": " << *Entities::GetEntityProp<int*>(weapon, { "m_iClip2" }) << ", "
-					<< "}, ";
+				if (weapon) {
+					int type = *Entities::GetEntityProp<int*>(weapon, { "m_iPrimaryAmmoType" });
+					int ammo = -1;
+
+					if (type != -1)
+						ammo = player.GetWeaponAmmo(type);
+
+					os << "\"weapon\": {"
+						<< "\"class\": \"" << Entities::GetEntityClassname(weapon) << "\", "
+						<< "\"clip1\": " << *Entities::GetEntityProp<int*>(weapon.Get(), { "m_iClip1" }) << ", "
+						<< "\"clip2\": " << *Entities::GetEntityProp<int*>(weapon.Get(), { "m_iClip2" }) << ", "
+						<< "\"reserve\": " << ammo << ", "
+						<< "\"index\": " << *Entities::GetEntityProp<int*>(weapon.Get(), { "m_iItemDefinitionIndex" }) << ", "
+						<< "}, ";
+				}
 			}
 
 			if (player.GetClass() == TFClassType::TFClass_Medic) {
@@ -491,12 +684,25 @@ void SendData() {
 					<< "\"target\": \"" << targetId.str() << "\""
 					<< "}, ";
 			}
+			else if (player.GetClass() == TFClassType::TFClass_Spy) {
+				os << "\"disguise\": {"
+					<< "\"class\": \"" << player.GetDisguiseClass() << "\" , "
+					<< "\"team\": \"" << player.GetDisguiseTeam() << "\" , "
+					<< "}, ";
+			}
 
 			os << "}, ";
 		}
 		os << " }";
 	}
 	else {
+		for (int i = 0; i < MAX_CONTROL_POINTS; i++) {
+			m_flCapTimeLeft[i] = 0.0f;
+			m_flCapLastThinkTime[i] = 0.0f;
+			m_nPlayersOnCap[i] = 0;
+		}
+
+		inOvertime = false;
 		inGameFlag = false;
 	}
 	os << " }";
