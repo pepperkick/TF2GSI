@@ -77,5 +77,5 @@ inline std::string GetVGUITexturePath(std::string normalTexturePath) {
 	return path;
 }
 
-#define PLUGIN_VERSION "0.0.7"
+#define PLUGIN_VERSION "1.0.0"
 #define PRINT_TAG() ConColorMsg(Color(0, 153, 153, 255), "[GSI] ")
