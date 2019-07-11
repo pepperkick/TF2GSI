@@ -8,12 +8,7 @@
 #include "../entities.h"
 #include "../ifaces.h"
 
-RoundTimer* timer1;
-RoundTimer* timer2;
-RoundTimer* timer3;
-RoundTimer* timer4;
-
-ConCommand* pause_ = nullptr;
+RoundTimer* RoundTimer::timers[MAX_TIMERS];
 
 RoundTimer::RoundTimer(IClientEntity* entity) {
 	this->entity = entity;
@@ -76,10 +71,7 @@ void RoundTimer::Find(int i) {
 			}
 
 			if (Entities::CheckEntityBaseclass(entity, "TeamRoundTimer")) {
-				if (m == 0) timer1 = new RoundTimer(entity);
-				if (m == 1) timer2 = new RoundTimer(entity);
-				if (m == 2) timer3 = new RoundTimer(entity);
-				if (m == 3) timer4 = new RoundTimer(entity);
+				timers[n] = new RoundTimer(entity);
 
 				n = i + 1;
 
@@ -87,11 +79,4 @@ void RoundTimer::Find(int i) {
 			}
 		}
 	}
-}
-
-RoundTimer* RoundTimer::Get(int m) {
-	if (m == 0) return timer1;
-	if (m == 1) return timer2;
-	if (m == 2) return timer3;
-	if (m == 3) return timer4;
 }
