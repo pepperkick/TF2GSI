@@ -14,13 +14,13 @@
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{FCBD44FD-41BF-44FE-9E37-04786CDA7FB7}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <UseOfMfc>false</UseOfMfc>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
@@ -57,13 +57,13 @@
       <StringPooling>true</StringPooling>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <FloatingPointModel>Fast</FloatingPointModel>
-      <AdditionalIncludeDirectories>vendor\sdk\common;vendor\sdk\public;vendor\sdk\public\tier0;vendor\sdk\public\tier1;vendor\sdk\public\tier2;vendor\sdk\public\tier3;vendor\sdk\game\shared;vendor\sdk\game\client;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>include;vendor\sdk\common;vendor\sdk\public;vendor\sdk\public\tier0;vendor\sdk\public\tier1;vendor\sdk\public\tier2;vendor\sdk\public\tier3;vendor\sdk\game\shared;vendor\sdk\game\client;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <TargetMachine>MachineX86</TargetMachine>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>$(SolutionDir)vendor\sdk\lib\public\tier0.lib;$(SolutionDir)vendor\sdk\lib\public\tier1.lib;$(SolutionDir)vendor\sdk\lib\public\tier2.lib;$(SolutionDir)vendor\sdk\lib\public\tier3.lib;$(SolutionDir)vendor\sdk\lib\public\mathlib.lib;$(SolutionDir)vendor\sdk\lib\public\steam_api.lib;$(SolutionDir)vendor\sdk\lib\public\vstdlib.lib;$(SolutionDir)vendor\sdk\lib\public\vgui_controls.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(SolutionDir)vendor\sdk\lib\public\tier0.lib;$(SolutionDir)vendor\sdk\lib\public\tier1.lib;$(SolutionDir)vendor\sdk\lib\public\tier2.lib;$(SolutionDir)vendor\sdk\lib\public\tier3.lib;$(SolutionDir)vendor\sdk\lib\public\mathlib.lib;$(SolutionDir)vendor\sdk\lib\public\steam_api.lib;$(SolutionDir)vendor\sdk\lib\public\vstdlib.lib;$(SolutionDir)vendor\sdk\lib\public\vgui_controls.lib;legacy_stdio_definitions.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>libcmt;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <AdditionalOptions>/ignore:4099</AdditionalOptions>

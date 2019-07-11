@@ -3,7 +3,11 @@
 #include <sstream>
 #include <string>
 
-#define noexcept _NOEXCEPT
+#ifndef _MSC_VER
+#define noexcept noexcept
+#else
+#define noexcept
+#endif
 
 class invalid_class_prop : public std::exception {
 public:
