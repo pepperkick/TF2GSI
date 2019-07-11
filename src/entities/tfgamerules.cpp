@@ -6,7 +6,7 @@
 #include "../entities.h"
 #include "../ifaces.h"
 
-TFGameRules* instance;
+TFGameRules* TFGameRules::instance = nullptr;
 
 TFGameRules::TFGameRules(IClientEntity* entity) {
 	this->entity = entity;
@@ -72,27 +72,4 @@ bool TFGameRules::IsValid() const {
 	return entity.IsValid() && Entities::CheckEntityBaseclass(this->entity, "TFGameRulesProxy");
 }
 
-void TFGameRules::Find() {
-	int maxEntity = Interfaces::pClientEntityList->GetHighestEntityIndex();
-
-	for (int i = 0; i <= maxEntity; i++) {
-		IClientEntity* entity = Interfaces::pClientEntityList->GetClientEntity(i);
-
-		if (!entity) {
-			continue;
-		}
-
-		if (Entities::CheckEntityBaseclass(entity, "TFGameRulesProxy")) {
-            instance = new TFGameRules(entity);
-            break;
-		}
-	}
-}
-
-TFGameRules* TFGameRules::Get() {
-	return instance;
-}
-
-void TFGameRules::Set(TFGameRules* entity) {
-	instance = entity;
-}
+void TFGameRules::Set(TFGameRules* entity) { instance = entity; }

@@ -19,10 +19,12 @@ public:
     int TFGameRules::GetBlueKOTHTimer() const;
 	bool IsValid() const;
 
-	static TFGameRules* Get();
+	static TFGameRules* Get() { return instance; };
 	static void Set(TFGameRules*);
 	static void Find();
 
 private:
+	static TFGameRules* instance;
+
 	CHandle<IClientEntity> entity;
 };
