@@ -10,7 +10,7 @@
 
 #define TEAM_ARRAY( index, team ) (index + (team * MAX_CONTROL_POINTS))
 
-ObjectiveResource* instance;
+ObjectiveResource* ObjectiveResource::instance = nullptr;
 
 ObjectiveResource::ObjectiveResource(IClientEntity* entity) {
 	this->entity = entity;
@@ -188,10 +188,4 @@ void ObjectiveResource::Find() {
 	}
 }
 
-ObjectiveResource* ObjectiveResource::Get() {
-	return instance;
-}
-
-void ObjectiveResource::Set(ObjectiveResource* entity) {
-	instance = entity;
-}
+void ObjectiveResource::Set(ObjectiveResource* entity) { instance = entity; }

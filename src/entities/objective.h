@@ -11,28 +11,28 @@ class ObjectiveResource {
 public:
 	ObjectiveResource(IClientEntity* entity);
 
-    int ObjectiveResource::GetNumCP() const;
-	bool ObjectiveResource::IsCapLocked(int) const;
-	float ObjectiveResource::CapPathDistance(int) const;
-	float ObjectiveResource::CapUnlockTime(int) const;
-	float ObjectiveResource::CapTimer(int) const;
-	int ObjectiveResource::CappingTeam(int) const;
-	int ObjectiveResource::CapTeamInZone(int) const;
-	bool ObjectiveResource::IsCapBlocked(int) const;
-	int ObjectiveResource::CapOwner(int) const;
-	float ObjectiveResource::CapTeamCapTime(int) const;
-	int ObjectiveResource::GetPlayersOnCap(int) const;
-	int ObjectiveResource::CapTimerTimes(int) const;
-	float ObjectiveResource::GetCapLazyPerc(int) const;
-	bool ObjectiveResource::DoesCPScaleWithPlayers(int i) const;
-	float ObjectiveResource::GetCapTimeLeft(int) const;
-	float ObjectiveResource::GetTimeLeft(int) const;
+    int GetNumCP() const;
+	bool IsCapLocked(int) const;
+	float CapPathDistance(int) const;
+	float CapUnlockTime(int) const;
+	float CapTimer(int) const;
+	int CappingTeam(int) const;
+	int CapTeamInZone(int) const;
+	bool IsCapBlocked(int) const;
+	int CapOwner(int) const;
+	float CapTeamCapTime(int) const;
+	int GetPlayersOnCap(int) const;
+	int CapTimerTimes(int) const;
+	float GetCapLazyPerc(int) const;
+	bool DoesCPScaleWithPlayers(int) const;
 	bool IsValid() const;
 
-	static ObjectiveResource* Get();
+	static ObjectiveResource* Get() { return instance; };
 	static void Set(ObjectiveResource*);
 	static void Find();
 
 private:
+	static ObjectiveResource* instance;
+
 	CHandle<IClientEntity> entity;
 };
