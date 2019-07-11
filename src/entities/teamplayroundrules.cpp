@@ -8,7 +8,7 @@
 #include "../entities.h"
 #include "../ifaces.h"
 
-TeamPlayRoundRules* instance;
+TeamPlayRoundRules* TeamPlayRoundRules::instance = nullptr;
 
 TeamPlayRoundRules::TeamPlayRoundRules(IClientEntity* entity) {
 	this->entity = entity;
@@ -26,27 +26,4 @@ bool TeamPlayRoundRules::IsValid() const {
 	return entity.IsValid() && Entities::CheckEntityBaseclass(entity, "TeamplayRoundBasedRulesProxy");
 }
 
-void TeamPlayRoundRules::Find() {
-	int maxEntity = Interfaces::pClientEntityList->GetHighestEntityIndex();
-
-	for (int i = 0; i <= maxEntity; i++) {
-		IClientEntity* entity = Interfaces::pClientEntityList->GetClientEntity(i);
-
-		if (!entity) {
-			continue;
-		}
-
-		if (Entities::CheckEntityBaseclass(entity, "TeamplayRoundBasedRulesProxy")) {
-			instance = new TeamPlayRoundRules(entity);
-			break;
-		}
-	}
-}
-
-TeamPlayRoundRules* TeamPlayRoundRules::Get() {
-	return instance;
-}
-
-void TeamPlayRoundRules::Set(TeamPlayRoundRules* entity) {
-	instance = entity;
-}
+void TeamPlayRoundRules::Set(TeamPlayRoundRules* entity) { instance = entity; }

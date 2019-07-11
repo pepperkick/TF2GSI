@@ -13,9 +13,11 @@ public:
 	float GetMapResetTime() const;
 	bool IsValid() const;
 
-	static TeamPlayRoundRules* Get();
+	static TeamPlayRoundRules* Get() { return instance; };
 	static void Set(TeamPlayRoundRules*);
-	static void Find();
+
 private:
+	static TeamPlayRoundRules* instance;
+
 	CHandle<IClientEntity> entity;
 };

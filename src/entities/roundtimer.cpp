@@ -8,7 +8,7 @@
 #include "../entities.h"
 #include "../ifaces.h"
 
-RoundTimer* RoundTimer::timers[MAX_TIMERS];
+RoundTimer* RoundTimer::timers[MAX_TIMERS] = { nullptr };
 
 RoundTimer::RoundTimer(IClientEntity* entity) {
 	this->entity = entity;
