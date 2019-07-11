@@ -152,12 +152,6 @@ bool Plugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn gameServ
 		return false;
 	}
 
-	if (!Team::CheckDependencies()) {
-		PRINT_TAG();
-		ConColorMsg(Color(255, 0, 0, 255), "Required team helper class!\n");
-		return false;
-	}
-
     PRINT_TAG();
     ConColorMsg(Color(255, 255, 0, 255), "Successfully Started!\n");
 
