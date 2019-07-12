@@ -58,6 +58,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <FloatingPointModel>Fast</FloatingPointModel>
       <AdditionalIncludeDirectories>include;vendor\sdk\common;vendor\sdk\public;vendor\sdk\public\tier0;vendor\sdk\public\tier1;vendor\sdk\public\tier2;vendor\sdk\public\tier3;vendor\sdk\game\shared;vendor\sdk\game\client;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/std:c++17 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <TargetMachine>MachineX86</TargetMachine>
