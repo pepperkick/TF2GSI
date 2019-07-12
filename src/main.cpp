@@ -45,7 +45,7 @@
 #include <set>
 #include <string>
 
-#include "tao/json.hpp"
+#include <tao/json.hpp>
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
