@@ -485,7 +485,9 @@ void SendData() {
 					percentage = (flElapsedTime / teamTime);
 				}
 
-				data["round"]["cap" + i] = {
+				string key = "cap" + to_string(i);
+
+				data["round"][key] = {
 					{ "locked", objective->IsCapLocked(i) },
 					{ "blocked", objective->IsCapBlocked(i) },
 					{ "cappedTeam", objective->CapOwner(i) },
