@@ -280,7 +280,7 @@ void SendData() {
 	if (targetPlayer) {
 		data["player"] = {
 			{ "name", targetPlayer.GetName().c_str() },
-			{ "steamid",targetPlayer.GetSteamID().ConvertToUint64() },
+			{ "steamid", to_string(targetPlayer.GetSteamID().ConvertToUint64()) },
 		};
 	}
 
