@@ -46,6 +46,7 @@
 #include <set>
 #include <string>
 #include <thread>
+#include <chrono>
 
 #include <tao/json.hpp>
 
@@ -81,7 +82,8 @@ HWND gTimers;
 // std::ostringstream extraData;
 json::value eventData = tao::json::empty_object;
 
-void CALLBACK LoopTimer(HWND hwnd, UINT uMsg, UINT timerId, DWORD dwTime);
+void LoopTimer();
+// void CALLBACK LoopTimer(HWND hwnd, UINT uMsg, UINT timerId, DWORD dwTime);
 void SendData();
 
 class Plugin : public IServerPluginCallbacks, IGameEventListener2 {
@@ -157,13 +159,17 @@ bool Plugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn gameServ
 		return false;
 	}
 
-	std::thread websocketThread(SocketServer::Start);
+	poolReady = true;
+
+	thread websocketThread(SocketServer::Start);
+	thread datapoolThread(LoopTimer);
 
 	websocketThread.detach();
+	datapoolThread.detach();
 
-	LogSuccess("Successfully Started\n");
+	LogSuccess("Plugin Started\n");
 
-    SetTimer(gTimers, 0, 125, &LoopTimer);
+    // SetTimer(gTimers, 0, 125, &LoopTimer);
 
     return true;
 }
@@ -171,7 +177,12 @@ bool Plugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn gameServ
 void Plugin::Unload() {
     Interfaces::Unload();
 	SocketServer::Stop();
-    KillTimer(gTimers, 0);
+
+	LogInfo("Plugin Stopped\n");
+
+	poolReady = false;
+
+    // KillTimer(gTimers, 0);
 }
 
 void Plugin::ClientPutInServer(edict_t *pEntity, char const *playername) {}
@@ -254,6 +265,13 @@ void Plugin::Transmit(json::value msg) {
 	string test = json::to_string(msg);
 
 	Plugin::Transmit(json::to_string(msg));
+}
+
+void LoopTimer() {
+	while (poolReady) {
+		SendData();
+		this_thread::sleep_for(chrono::milliseconds(100));
+	}
 }
 
 void CALLBACK LoopTimer(HWND hwnd, UINT uMsg, UINT timerId, DWORD dwTime) {
