@@ -33,7 +33,7 @@ bool SocketServer::Start() {
 
 	m_IsRunning = true;
 
-	LogSuccess("Websocket Server Successfully Started\n");
+	LogSuccess("Websocket Server Started\n");
 
 	while (m_IsRunning) {
 		lws_service(m_Context, 125);
