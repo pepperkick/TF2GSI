@@ -79,6 +79,9 @@ CHandle<IClientEntity> m_hActiveWeapon[MAX_PLAYERS] = { nullptr };
 
 json::value eventData = tao::json::empty_object;
 
+Plugin g_Plugin;
+EXPOSE_SINGLE_INTERFACE_GLOBALVAR(Plugin, IServerPluginCallbacks, INTERFACEVERSION_ISERVERPLUGINCALLBACKS, g_Plugin);
+
 void LoopTimer();
 void SendData();
 
@@ -111,9 +114,6 @@ public:
 	void Transmit(std::string);
 	void Transmit(json::value);
 };
-
-Plugin g_Plugin;
-EXPOSE_SINGLE_INTERFACE_GLOBALVAR(Plugin, IServerPluginCallbacks, INTERFACEVERSION_ISERVERPLUGINCALLBACKS, g_Plugin);
 
 bool Plugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn gameServerFactory) {
     LogInfo("Loading plugin, Version: %s\n", PLUGIN_VERSION);
@@ -165,8 +165,6 @@ bool Plugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn gameServ
 
 	LogSuccess("Plugin Started\n");
 
-    // SetTimer(gTimers, 0, 125, &LoopTimer);
-
     return true;
 }
 
@@ -177,8 +175,6 @@ void Plugin::Unload() {
 	LogInfo("Plugin Stopped\n");
 
 	poolReady = false;
-
-    // KillTimer(gTimers, 0);
 }
 
 void Plugin::ClientPutInServer(edict_t *pEntity, char const *playername) {}
@@ -260,10 +256,6 @@ void LoopTimer() {
 		SendData();
 		this_thread::sleep_for(chrono::milliseconds(100));
 	}
-}
-
-void CALLBACK LoopTimer(HWND hwnd, UINT uMsg, UINT timerId, DWORD dwTime) {
-	SendData();
 }
 
 void SendData() {
