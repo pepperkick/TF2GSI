@@ -45,6 +45,7 @@
 #include <vector>
 #include <set>
 #include <string>
+#include <thread>
 
 #include <tao/json.hpp>
 
@@ -161,19 +162,12 @@ bool Plugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn gameServ
 		return false;
 	}
 
-	if (SocketServer::Start()) {
-		PRINT_TAG();
-		ConColorMsg(Color(0, 255, 0, 255), "Successfully Websocket Started\n");
-	}
-	else {
-		PRINT_TAG();
-		ConColorMsg(Color(2550, 0, 0, 255), "Faild to start websocket Server\n");
+	std::thread websocketThread(SocketServer::Start);
 
-		return false;
-	}
+	websocketThread.detach();
 
     PRINT_TAG();
-    ConColorMsg(Color(255, 255, 0, 255), "Successfully Started\n");
+    ConColorMsg(Color(0, 255, 0, 255), "Successfully Started\n");
 
     SetTimer(gTimers, 0, 125, &LoopTimer);
 

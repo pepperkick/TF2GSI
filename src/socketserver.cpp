@@ -2,6 +2,9 @@
 
 #include "common.h"
 
+#include <thread>
+#include <chrono>
+
 #include <libwebsockets.h>
 
 void CALLBACK SocketServerLoopTimer(HWND, UINT, UINT, DWORD);
@@ -23,12 +26,22 @@ bool SocketServer::Start() {
 	m_Context = lws_create_context(&info);
 
 	if (!m_Context) {
+		PRINT_TAG();
+		ConColorMsg(Color(255, 0, 0, 255), "Faild to start websocket server\n");
+
 		return false;
 	}
 
 	m_IsRunning = true;
 
-	SetTimer(m_Timer, 0, 10, &SocketServerLoopTimer);
+	PRINT_TAG();
+	ConColorMsg(Color(255, 255, 0, 255), "Websocket Server Successfully Started\n");
+
+	while (m_IsRunning) {
+		lws_service(m_Context, 125);
+	}
+
+	SocketServer::Stop();
 
 	return true;
 }
@@ -36,15 +49,12 @@ bool SocketServer::Start() {
 bool SocketServer::Stop() {
 	m_IsRunning = false;
 
-	KillTimer(m_Timer, 0);
-	
 	lws_context_destroy(m_Context);
 
-	return true;
-}
+	PRINT_TAG();
+	ConColorMsg(Color(255, 255, 0, 255), "Websocket Server Stopped\n");
 
-void SocketServer::Loop() {
-	lws_service(m_Context, 0);
+	return true;
 }
 
 void SocketServer::SetMessage(const char* msg) {
@@ -63,13 +73,13 @@ int SocketServer::CallbackGameData(lws* wsi, lws_callback_reasons reason, void* 
 		break;
 	case LWS_CALLBACK_ESTABLISHED:
 		PRINT_TAG();
-		ConColorMsg(Color(255, 255, 0, 255), "Websocket Client Connected!\n");
+		ConColorMsg(Color(255, 255, 0, 255), "Websocket Client Connected\n");
 
 		lws_callback_on_writable(wsi);
 		break;
 	case LWS_CALLBACK_CLOSED:
 		PRINT_TAG();
-		ConColorMsg(Color(255, 255, 0, 255), "Websocket Client Disconnected!\n");
+		ConColorMsg(Color(255, 255, 0, 255), "Websocket Client Disconnected\n");
 		break;
 	case LWS_CALLBACK_SERVER_WRITEABLE:
 		if (m_MessageLength) {
@@ -81,9 +91,14 @@ int SocketServer::CallbackGameData(lws* wsi, lws_callback_reasons reason, void* 
 
 			if (wroteLen < m_MessageLength) {
 				PRINT_TAG();
-				ConColorMsg(Color(255, 0, 0, 255), "Error while writing to ws! Wrote %d\n", wroteLen);
+				ConColorMsg(Color(255, 0, 0, 255), "Error while writing to ws, wrote %d, actual size %d\n", wroteLen, m_MessageLength);
 			}
+
+			PRINT_TAG();
+			ConColorMsg(Color(255, 255, 0, 255), "Wrote Something\n");
 		}
+		
+		std::this_thread::sleep_for(std::chrono::milliseconds(125));
 
 		lws_callback_on_writable(wsi);
 		break;

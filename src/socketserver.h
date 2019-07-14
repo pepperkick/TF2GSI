@@ -2,19 +2,18 @@
 #include <stdlib.h>
 #include <libwebsockets.h>
 
-#define MAX_MESSAGE_LENGTH 65536
+#define MAX_MESSAGE_LENGTH 16256
 
 class SocketServer {
 public:
 	static bool Start();
 	static bool Stop();
-	static void Loop();
 	static void SetMessage(const char*);
 	static int CallbackGameData(struct lws*, enum lws_callback_reasons, void*, void*, size_t);
 
 private:
 	constexpr static struct lws_protocols m_Protocols[] = {
-		{ "game-data", CallbackGameData, 0 },
+		{ "game-data", CallbackGameData, MAX_MESSAGE_LENGTH, MAX_MESSAGE_LENGTH },
 		{ NULL, NULL, 0 }
 	};
 
