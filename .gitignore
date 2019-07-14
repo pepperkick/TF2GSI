@@ -8,3 +8,4 @@ vendor/
 .vscode/
 netdump
 include/
+lib/

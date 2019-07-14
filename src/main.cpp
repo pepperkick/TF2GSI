@@ -40,6 +40,7 @@
 #include "entities/teamplayroundrules.h"
 #include "ifaces.h"
 #include "entities.h"
+#include "socketserver.h"
 
 #include <vector>
 #include <set>
@@ -156,12 +157,23 @@ bool Plugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn gameServ
 
 	if (!Player::CheckDependencies()) {
 		PRINT_TAG();
-		ConColorMsg(Color(255, 0, 0, 255), "Required player helper class!\n");
+		ConColorMsg(Color(255, 0, 0, 255), "Required player helper class\n");
+		return false;
+	}
+
+	if (SocketServer::Start()) {
+		PRINT_TAG();
+		ConColorMsg(Color(0, 255, 0, 255), "Successfully Websocket Started\n");
+	}
+	else {
+		PRINT_TAG();
+		ConColorMsg(Color(2550, 0, 0, 255), "Faild to start websocket Server\n");
+
 		return false;
 	}
 
     PRINT_TAG();
-    ConColorMsg(Color(255, 255, 0, 255), "Successfully Started!\n");
+    ConColorMsg(Color(255, 255, 0, 255), "Successfully Started\n");
 
     SetTimer(gTimers, 0, 125, &LoopTimer);
 
@@ -241,6 +253,8 @@ void Plugin::Transmit(const char* msg) {
 	
     DWORD cbWritten;
     WriteFile(hPipe, msg, strlen(msg), &cbWritten, NULL);
+
+	SocketServer::SetMessage(msg);
 }
 
 void Plugin::Transmit(std::string msg) {

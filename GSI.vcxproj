@@ -64,10 +64,12 @@
       <TargetMachine>MachineX86</TargetMachine>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>$(SolutionDir)vendor\sdk\lib\public\tier0.lib;$(SolutionDir)vendor\sdk\lib\public\tier1.lib;$(SolutionDir)vendor\sdk\lib\public\tier2.lib;$(SolutionDir)vendor\sdk\lib\public\tier3.lib;$(SolutionDir)vendor\sdk\lib\public\mathlib.lib;$(SolutionDir)vendor\sdk\lib\public\steam_api.lib;$(SolutionDir)vendor\sdk\lib\public\vstdlib.lib;$(SolutionDir)vendor\sdk\lib\public\vgui_controls.lib;legacy_stdio_definitions.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <IgnoreSpecificDefaultLibraries>libcmt;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <AdditionalDependencies>$(SolutionDir)lib\websockets.lib;$(SolutionDir)lib\websockets_static.lib;$(SolutionDir)vendor\sdk\lib\public\tier0.lib;$(SolutionDir)vendor\sdk\lib\public\tier1.lib;$(SolutionDir)vendor\sdk\lib\public\tier2.lib;$(SolutionDir)vendor\sdk\lib\public\tier3.lib;$(SolutionDir)vendor\sdk\lib\public\mathlib.lib;$(SolutionDir)vendor\sdk\lib\public\steam_api.lib;$(SolutionDir)vendor\sdk\lib\public\vstdlib.lib;$(SolutionDir)vendor\sdk\lib\public\vgui_controls.lib;legacy_stdio_definitions.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <IgnoreSpecificDefaultLibraries>libcmt;websockets;websockets_static;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
+      <AdditionalLibraryDirectories>
+      </AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -100,6 +102,7 @@
     <ClCompile Include="src\ifaces.cpp" />
     <ClCompile Include="src\entities\*.cpp" />
     <ClCompile Include="src\tfdefs.cpp" />
+    <ClCompile Include="src\socketserver.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\common.h" />
@@ -110,6 +113,7 @@
     <ClInclude Include="src\entities\*.h" />
     <ClInclude Include="src\tfdefs.h" />
     <ClInclude Include="src\camerastate.h" />
+    <ClInclude Include="src\socketserver.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
