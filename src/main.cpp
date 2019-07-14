@@ -77,13 +77,9 @@ float m_flCapLastThinkTime[MAX_CONTROL_POINTS] = { 0.0f };
 int m_nPlayersOnCap[MAX_CONTROL_POINTS] = { 0 };
 CHandle<IClientEntity> m_hActiveWeapon[MAX_PLAYERS] = { nullptr };
 
-HWND gTimers;
-
-// std::ostringstream extraData;
 json::value eventData = tao::json::empty_object;
 
 void LoopTimer();
-// void CALLBACK LoopTimer(HWND hwnd, UINT uMsg, UINT timerId, DWORD dwTime);
 void SendData();
 
 class Plugin : public IServerPluginCallbacks, IGameEventListener2 {
@@ -246,14 +242,6 @@ void Plugin::FireGameEvent(IGameEvent* event) {
 }
 
 void Plugin::Transmit(const char* msg) {
-    HANDLE hPipe;
-    LPTSTR lptPipeName = TEXT("\\\\.\\pipe\\tf2-gsi");
-
-    hPipe = CreateFile(lptPipeName, GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
-	
-    DWORD cbWritten;
-    WriteFile(hPipe, msg, strlen(msg), &cbWritten, NULL);
-
 	SocketServer::SetMessage(msg);
 }
 
