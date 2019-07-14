@@ -9,10 +9,9 @@
 
 void CALLBACK SocketServerLoopTimer(HWND, UINT, UINT, DWORD);
 int SocketServer::m_Port = 5540;
-int SocketServer::m_TickRate = 10;
+int SocketServer::m_TickRate = 125;
 int SocketServer::m_MessageLength = 1;
 bool SocketServer::m_IsRunning = false;
-HWND SocketServer::m_Timer = nullptr;
 lws_context* SocketServer::m_Context = nullptr;
 char* SocketServer::m_Message[MAX_MESSAGE_LENGTH];
 
@@ -36,7 +35,7 @@ bool SocketServer::Start() {
 	LogSuccess("Websocket Server Started\n");
 
 	while (m_IsRunning) {
-		lws_service(m_Context, 125);
+		lws_service(m_Context, m_TickRate);
 	}
 
 	SocketServer::Stop();
@@ -91,7 +90,7 @@ int SocketServer::CallbackGameData(lws* wsi, lws_callback_reasons reason, void* 
 			LogDebug("Wrote in websocket\n");
 		}
 		
-		std::this_thread::sleep_for(std::chrono::milliseconds(125));
+		std::this_thread::sleep_for(std::chrono::milliseconds(m_TickRate));
 
 		lws_callback_on_writable(wsi);
 		break;

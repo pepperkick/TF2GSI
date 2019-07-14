@@ -21,7 +21,6 @@ private:
 	static int m_TickRate;
 	static int m_MessageLength;
 	static bool m_IsRunning;
-	static HWND m_Timer;
 	static lws_context* m_Context;
 	static char* m_Message[MAX_MESSAGE_LENGTH];
 };
