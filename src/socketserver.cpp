@@ -26,16 +26,14 @@ bool SocketServer::Start() {
 	m_Context = lws_create_context(&info);
 
 	if (!m_Context) {
-		PRINT_TAG();
-		ConColorMsg(Color(255, 0, 0, 255), "Faild to start websocket server\n");
+		LogError("Faild to start websocket server\n");
 
 		return false;
 	}
 
 	m_IsRunning = true;
 
-	PRINT_TAG();
-	ConColorMsg(Color(255, 255, 0, 255), "Websocket Server Successfully Started\n");
+	LogSuccess("Websocket Server Successfully Started\n");
 
 	while (m_IsRunning) {
 		lws_service(m_Context, 125);
@@ -51,8 +49,7 @@ bool SocketServer::Stop() {
 
 	lws_context_destroy(m_Context);
 
-	PRINT_TAG();
-	ConColorMsg(Color(255, 255, 0, 255), "Websocket Server Stopped\n");
+	LogInfo("Websocket Server Stopped\n");
 
 	return true;
 }
@@ -72,14 +69,12 @@ int SocketServer::CallbackGameData(lws* wsi, lws_callback_reasons reason, void* 
 	case LWS_CALLBACK_PROTOCOL_DESTROY:
 		break;
 	case LWS_CALLBACK_ESTABLISHED:
-		PRINT_TAG();
-		ConColorMsg(Color(255, 255, 0, 255), "Websocket Client Connected\n");
+		LogInfo("Websocket Client Connected\n");
 
 		lws_callback_on_writable(wsi);
 		break;
 	case LWS_CALLBACK_CLOSED:
-		PRINT_TAG();
-		ConColorMsg(Color(255, 255, 0, 255), "Websocket Client Disconnected\n");
+		LogInfo("Websocket Client Disconnected\n");
 		break;
 	case LWS_CALLBACK_SERVER_WRITEABLE:
 		if (m_MessageLength) {
@@ -90,12 +85,10 @@ int SocketServer::CallbackGameData(lws* wsi, lws_callback_reasons reason, void* 
 			int wroteLen = lws_write(wsi, &buf[LWS_PRE], m_MessageLength, LWS_WRITE_TEXT);
 
 			if (wroteLen < m_MessageLength) {
-				PRINT_TAG();
-				ConColorMsg(Color(255, 0, 0, 255), "Error while writing to ws, wrote %d, actual size %d\n", wroteLen, m_MessageLength);
+				LogError("Error while writing to websocket, wrote length %d, actual length %d\n", wroteLen, m_MessageLength);
 			}
 
-			PRINT_TAG();
-			ConColorMsg(Color(255, 255, 0, 255), "Wrote Something\n");
+			LogDebug("Wrote in websocket\n");
 		}
 		
 		std::this_thread::sleep_for(std::chrono::milliseconds(125));
@@ -107,8 +100,4 @@ int SocketServer::CallbackGameData(lws* wsi, lws_callback_reasons reason, void* 
 	}
 
 	return 0;
-}
-
-void CALLBACK SocketServerLoopTimer(HWND hwnd, UINT uMsg, UINT timerId, DWORD dwTime) {
-	SocketServer::Loop();
 }

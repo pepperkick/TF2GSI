@@ -14,6 +14,12 @@
 class ConCommand;
 
 #define GAME_PANEL_MODULE "ClientDLL"
+#define PLUGIN_VERSION "1.0.0"
+#define PRINT_TAG() ConColorMsg(Color(0, 153, 153, 255), "[GSI] ")
+#define COLOR_DEBUG Color(255, 255, 255, 255)
+#define COLOR_INFO Color(255, 255, 0, 255)
+#define COLOR_ERROR Color(255, 0, 0, 255)
+#define COLOR_SUCCESS Color(0, 255, 0, 255)
 
 inline void FindAndReplaceInString(std::string &str, const std::string &find, const std::string &replace) {
 	if (find.empty())
@@ -77,5 +83,50 @@ inline std::string GetVGUITexturePath(std::string normalTexturePath) {
 	return path;
 }
 
-#define PLUGIN_VERSION "1.0.0"
-#define PRINT_TAG() ConColorMsg(Color(0, 153, 153, 255), "[GSI] ")
+template<typename ...Args>
+inline void LogDebug(PRINTF_FORMAT_STRING const tchar* pMsg, Args&& ... args) {
+#ifdef DEBUG
+	PRINT_TAG();
+	((void)ConColorMsg(COLOR_DEBUG, pMsg, std::forward<Args>(args)), ...);
+#endif
+}
+
+inline void LogDebug(PRINTF_FORMAT_STRING const tchar* pMsg) {
+#ifdef DEBUG
+	PRINT_TAG();
+	ConColorMsg(COLOR_DEBUG, pMsg);
+#endif
+}
+
+template<typename ...Args>
+inline void LogInfo(PRINTF_FORMAT_STRING const tchar* pMsg, Args&& ... args) {
+	PRINT_TAG();
+	((void)ConColorMsg(COLOR_INFO, pMsg, std::forward<Args>(args)), ...);
+}
+
+inline void LogInfo(PRINTF_FORMAT_STRING const tchar* pMsg) {
+	PRINT_TAG();
+	ConColorMsg(COLOR_INFO, pMsg);
+}
+
+template<typename ...Args>
+inline void LogError(PRINTF_FORMAT_STRING const tchar* pMsg, Args&& ... args) {
+	PRINT_TAG();
+	((void)ConColorMsg(COLOR_ERROR, pMsg, std::forward<Args>(args)), ...);
+}
+
+inline void LogError(PRINTF_FORMAT_STRING const tchar* pMsg) {
+	PRINT_TAG();
+	ConColorMsg(COLOR_ERROR, pMsg);
+}
+
+template<typename ...Args>
+inline void LogSuccess(PRINTF_FORMAT_STRING const tchar* pMsg, Args&& ... args) {
+	PRINT_TAG();
+	((void)ConColorMsg(COLOR_SUCCESS, pMsg, std::forward<Args>(args)), ...);
+}
+
+inline void LogSuccess(PRINTF_FORMAT_STRING const tchar* pMsg) {
+	PRINT_TAG();
+	ConColorMsg(COLOR_SUCCESS, pMsg);
+}

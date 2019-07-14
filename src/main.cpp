@@ -118,8 +118,7 @@ Plugin g_Plugin;
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR(Plugin, IServerPluginCallbacks, INTERFACEVERSION_ISERVERPLUGINCALLBACKS, g_Plugin);
 
 bool Plugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn gameServerFactory) {
-    PRINT_TAG();
-    ConColorMsg(Color(255, 255, 0, 255), "Loading plugin, Version: %s\n", PLUGIN_VERSION);
+    LogInfo("Loading plugin, Version: %s\n", PLUGIN_VERSION);
 
     Interfaces::Load(interfaceFactory, gameServerFactory);
     Interfaces::pGameEventManager->AddListener(this, "player_death", false);
@@ -139,26 +138,22 @@ bool Plugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn gameServ
 	gVersion = Interfaces::GetEngineClient()->GetProductVersionString();
 
 	if (!Interfaces::GetClientDLL()) {
-        PRINT_TAG();
-        ConColorMsg(Color(255, 0, 0, 255), "Could not find game DLL interface, aborting load\n");
+		LogError("Could not find game DLL interface, aborting load\n");
         return false;
     }
 
 	if (!Interfaces::GetClientEngineTools()) {
-        PRINT_TAG();
-        ConColorMsg(Color(255, 0, 0, 255), "Could not find engine tools, aborting load\n");
+		LogError("Could not find engine tools, aborting load\n");
         return false;
     }
 
 	if (!Interfaces::GetEngineClient()) {
-        PRINT_TAG();
-        ConColorMsg(Color(255, 0, 0, 255), "Could not find engine client, aborting load\n");
+		LogError("Could not find engine client, aborting load\n");
         return false;
     }
 
 	if (!Player::CheckDependencies()) {
-		PRINT_TAG();
-		ConColorMsg(Color(255, 0, 0, 255), "Required player helper class\n");
+		LogError("Required player helper class\n");
 		return false;
 	}
 
@@ -166,8 +161,7 @@ bool Plugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn gameServ
 
 	websocketThread.detach();
 
-    PRINT_TAG();
-    ConColorMsg(Color(0, 255, 0, 255), "Successfully Started\n");
+	LogSuccess("Successfully Started\n");
 
     SetTimer(gTimers, 0, 125, &LoopTimer);
 
@@ -176,6 +170,7 @@ bool Plugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn gameServ
 
 void Plugin::Unload() {
     Interfaces::Unload();
+	SocketServer::Stop();
     KillTimer(gTimers, 0);
 }
 
