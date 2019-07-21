@@ -58,11 +58,11 @@ bool RoundTimer::IsValid() const {
 	return entity.IsValid() && Entities::CheckEntityBaseclass(entity, "TeamRoundTimer");
 }
 
-void RoundTimer::Find(int i) {
+void RoundTimer::Find(int f) {
 	int maxEntity = Interfaces::pClientEntityList->GetHighestEntityIndex();
 	int n = 0, c = 0;
 	
-	for (int m = 0; m < i; m++) {
+	for (int m = 0; m < f; m++) {
 		for (int i = n; i <= maxEntity; i++) {
 			IClientEntity* entity = Interfaces::pClientEntityList->GetClientEntity(i);
 
@@ -71,7 +71,7 @@ void RoundTimer::Find(int i) {
 			}
 
 			if (Entities::CheckEntityBaseclass(entity, "TeamRoundTimer")) {
-				timers[n] = new RoundTimer(entity);
+				timers[m] = new RoundTimer(entity);
 
 				n = i + 1;
 
