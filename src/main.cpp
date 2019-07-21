@@ -80,9 +80,6 @@ CHandle<IClientEntity> m_hActiveWeapon[MAX_PLAYERS] = { nullptr };
 
 json::value eventData = tao::json::empty_object;
 
-Plugin g_Plugin;
-EXPOSE_SINGLE_INTERFACE_GLOBALVAR(Plugin, IServerPluginCallbacks, INTERFACEVERSION_ISERVERPLUGINCALLBACKS, g_Plugin);
-
 void LoopTimer();
 void SendData();
 
@@ -115,6 +112,9 @@ public:
 	void Transmit(std::string);
 	void Transmit(json::value);
 };
+
+Plugin g_Plugin;
+EXPOSE_SINGLE_INTERFACE_GLOBALVAR(Plugin, IServerPluginCallbacks, INTERFACEVERSION_ISERVERPLUGINCALLBACKS, g_Plugin);
 
 bool Plugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn gameServerFactory) {
     LogInfo("Loading plugin, Version: %s\n", PLUGIN_VERSION);
