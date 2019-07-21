@@ -31,15 +31,16 @@
 #include "icliententitylist.h"
 #include "ehandle.h"
 
-#include "common.h"
-#include "entities/player.h"
-#include "entities/team.h"
-#include "entities/roundtimer.h"
-#include "entities/tfgamerules.h"
-#include "entities/objective.h"
-#include "entities/teamplayroundrules.h"
+#include "Common.h"
+#include "Entities/Player.h"
+#include "Entities/Team.h"
+#include "Entities/RoundTimer.h"
+#include "Entities/TFGameRules.h"
+#include "Entities/Objective.h"
+#include "Entities/TeamplayRoundRules.h"
+#include "Entities.h"
 #include "ifaces.h"
-#include "entities.h"
+
 #include "socketserver.h"
 
 #include <vector>

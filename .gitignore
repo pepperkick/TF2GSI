@@ -1,11 +1,11 @@
-srctvplus.o
-srctvplus.so
 Release/
 Debug/
+cmake-build-debug/
 vendor/
 .vs/
 *.user
 .vscode/
+.idea/
 netdump
 include/
 lib/
