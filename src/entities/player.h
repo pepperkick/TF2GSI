@@ -148,7 +148,7 @@ public:
 
 private:
 	CHandle<IClientEntity> playerEntity;
-	unsigned int playerConditions[4];
+	uint32_t playerConditions[4];
 
 	bool IsValid() const;
 	bool IsEqualTo(const Player &player) const;

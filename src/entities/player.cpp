@@ -233,16 +233,16 @@ IClientEntity *Player::GetEntity() const {
 
 bool Player::FindCondition() {
 	if (IsValid()) {
-		uint32_t playerCond = *Entities::GetEntityProp<uint32_t*>(playerEntity.Get(), { "m_nPlayerCond" });
 		uint32_t condBits = *Entities::GetEntityProp<uint32_t*>(playerEntity.Get(), { "_condition_bits" });
+		uint32_t playerCond = *Entities::GetEntityProp<uint32_t*>(playerEntity.Get(), { "m_nPlayerCond" });
 		uint32_t playerCondEx = *Entities::GetEntityProp<uint32_t*>(playerEntity.Get(), { "m_nPlayerCondEx" });
 		uint32_t playerCondEx2 = *Entities::GetEntityProp<uint32_t*>(playerEntity.Get(), { "m_nPlayerCondEx2" });
 		uint32_t playerCondEx3 = *Entities::GetEntityProp<uint32_t*>(playerEntity.Get(), { "m_nPlayerCondEx3" });
 
-		playerConditions[0] = (playerCond | condBits) || 0;
-		playerConditions[1] = playerCondEx || 0;
-		playerConditions[2] = playerCondEx2 || 0;
-		playerConditions[3] = playerCondEx3 || 0;
+		playerConditions[0] = (condBits | playerCond);
+		playerConditions[1] = playerCondEx;
+		playerConditions[2] = playerCondEx2;
+		playerConditions[3] = playerCondEx3;
 
 		return true;
 	}
