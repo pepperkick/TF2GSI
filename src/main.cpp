@@ -70,18 +70,19 @@ bool inGameFlag = false;
 bool inOvertime = false;
 
 float mapStartTime = 0;
-int gAppId; 
-const char* gVersion;
+int g_AppId, g_EventId = 0;
+const char* g_Version;
 
 float m_flCapTimeLeft[MAX_CONTROL_POINTS] = { 0.0f };
 float m_flCapLastThinkTime[MAX_CONTROL_POINTS] = { 0.0f };
 int m_nPlayersOnCap[MAX_CONTROL_POINTS] = { 0 };
 CHandle<IClientEntity> m_hActiveWeapon[MAX_PLAYERS] = { nullptr };
 
-json::value eventData = tao::json::empty_object;
+json::value g_EventData = tao::json::empty_object;
 
 void LoopTimer();
 void SendData();
+string GetEventKey();
 
 class Plugin : public IServerPluginCallbacks, IGameEventListener2 {
 public:
@@ -133,8 +134,8 @@ bool Plugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn gameServ
 	Interfaces::pGameEventManager->AddListener(this, "teamplay_win_panel", false);
 	Interfaces::pGameEventManager->AddListener(this, "controlpoint_updatecapping", false);
 
-	gAppId = Interfaces::GetEngineClient()->GetAppID();
-	gVersion = Interfaces::GetEngineClient()->GetProductVersionString();
+	g_AppId = Interfaces::GetEngineClient()->GetAppID();
+	g_Version = Interfaces::GetEngineClient()->GetProductVersionString();
 
 	if (!Interfaces::GetClientDLL()) {
 		LogError("Could not find game DLL interface, aborting load\n");
@@ -191,23 +192,21 @@ void Plugin::FireGameEvent(IGameEvent* event) {
 		Player attacker = Interfaces::pEngineClient->GetPlayerForUserID(attackerUserID);
 		Player assister = Interfaces::pEngineClient->GetPlayerForUserID(assisterUserID);
 
-		eventData = {
+		string key = "event" + to_string(g_EventId);
+		g_EventData[GetEventKey()] = {
 			{ "name", event->GetName() },
 			{ "victim", victim.GetSteamID().ConvertToUint64() },
 			{ "attacker", attacker.GetSteamID().ConvertToUint64() },
 			{ "assister", assister.GetSteamID().ConvertToUint64() },
 			{ "weapon", weapon },
 		};
-
-		SendData();
 	}
 	else if (!strcmp(event->GetName(), "teamplay_win_panel")) {
-		eventData = {
+		string key = "event" + to_string(g_EventId);
+		g_EventData[GetEventKey()] = {
 			{ "name", event->GetName() },
 			{ "team", event->GetInt("winning_team") },
 		};
-
-		SendData();
 	}
 	else if (!strcmp(event->GetName(), "teamplay_point_captured")) {
 		int index = event->GetInt("cp", -1);
@@ -271,13 +270,24 @@ void SendData() {
 
 	data["provider"] = {
 		{ "name", "Team Fortress 2" },
-		{ "appid", gAppId },
-		{ "version", gVersion },
+		{ "appid", g_AppId },
+		{ "version", g_Version },
 		{ "gsi", PLUGIN_VERSION },
 	};
 
-	data["event"] = eventData;
-	eventData = json::empty_object;
+	if (g_EventId > 5) {
+		data["events"] = tao::json::empty_object;
+		data["events"]["count"] = g_EventId;
+
+		for (int i = g_EventId; i > g_EventId - 5; i--) {
+			string key = "event" + to_string(i - 1);
+			data["events"][key] = g_EventData[key];
+		}
+	}
+	else {
+		data["events"] = g_EventData;
+		data["events"]["count"] = g_EventId;
+	}
 
 	if (targetPlayer) {
 		data["player"] = {
@@ -452,6 +462,8 @@ void SendData() {
 					{ "matchTimeLeft", timeleft },
 					{ "roundTimeLeft", timer->GetEndTime() - Interfaces::GetEngineTools()->ClientTime() },
 					{ "noOfCaps", numOfCaps },
+					{ "mapResetTime", TFGameRules::Get()->GetMapResetTime() },
+					{ "mapResetTime2", TeamPlayRoundRules::Get()->GetMapResetTime() },
 				};
 
 			}
@@ -683,9 +695,18 @@ void SendData() {
 			m_nPlayersOnCap[i] = 0;
 		}
 
+		g_EventData = json::empty_object;
+		g_EventId = 0;
+
 		inOvertime = false;
 		inGameFlag = false;
 	}
 
 	g_Plugin.Transmit(data);
+}
+
+string GetEventKey() {
+	string key = "event" + to_string(g_EventId);
+	g_EventId++;
+	return key;
 }
