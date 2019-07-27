@@ -35,7 +35,7 @@ bool SocketServer::Start() {
 	LogSuccess("Websocket Server Started\n");
 
 	while (m_IsRunning) {
-		lws_service(m_Context, m_TickRate);
+		lws_service(m_Context, 0);
 	}
 
 	SocketServer::Stop();
