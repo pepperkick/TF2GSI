@@ -11,6 +11,37 @@
 
 std::unordered_map<std::string, std::unordered_map<std::string, int>> Entities::classPropOffsets;
 
+void Entities::DumpAllProps(std::string className) {
+	ClientClass* cc = Interfaces::pClientDLL->GetAllClasses();
+
+	while (cc) {
+		if (className.compare(cc->GetName()) == 0) {
+			RecvTable* table = cc->m_pRecvTable;
+
+			DumpAllProps(table);
+		}
+
+		cc = cc->m_pNext;
+	}
+}
+
+void Entities::DumpAllProps(RecvTable* table) {
+	for (int i = 0; i < table->GetNumProps(); i++) {
+		RecvProp* currentProp = table->GetProp(i);
+
+		std::string name = currentProp->GetName();
+		int offset = currentProp->GetOffset();
+
+		if (name.compare("m_flMapResetTime") == 0) {
+			int i = 1;
+		}
+
+		if (currentProp->GetType() == DPT_DataTable) {
+			DumpAllProps(currentProp->GetDataTable());
+		}
+	}
+}
+
 bool Entities::RetrieveClassPropOffset(std::string className, std::vector<std::string> propertyTree) {
 	std::string propertyString = ConvertTreeToString(propertyTree);
 
@@ -70,6 +101,10 @@ int Entities::GetClassPropOffset(std::string className, std::vector<std::string>
 	return classPropOffsets[className][propertyString];
 }
 
+void* Entities::GetEntityValueAtOffset(IClientEntity* entity, int offset) {
+	return (void*)((unsigned long)(entity)+(unsigned long)(offset));
+}
+
 void *Entities::GetEntityProp(IClientEntity *entity, std::vector<std::string> propertyTree) {
 	std::string className = entity->GetClientClass()->GetName();
 
@@ -79,7 +114,7 @@ void *Entities::GetEntityProp(IClientEntity *entity, std::vector<std::string> pr
 
 	std::string propertyString = ConvertTreeToString(propertyTree);
 
-	return (void *)((unsigned long)(entity)+(unsigned long)(classPropOffsets[className][propertyString]));
+	return GetEntityValueAtOffset(entity, classPropOffsets[className][propertyString]);
 }	
 
 bool Entities::GetSubProp(RecvTable *table, const char *propName, RecvProp *&prop, int &offset) {
