@@ -132,6 +132,7 @@ bool Plugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn gameServ
 	Interfaces::pGameEventManager->AddListener(this, "teamplay_overtime_end", false);
     Interfaces::pGameEventManager->AddListener(this, "teamplay_game_over", false);
 	Interfaces::pGameEventManager->AddListener(this, "teamplay_win_panel", false);
+	Interfaces::pGameEventManager->AddListener(this, "teamplay_map_time_remaining", false);
 	Interfaces::pGameEventManager->AddListener(this, "controlpoint_updatecapping", false);
 
 	g_AppId = Interfaces::GetEngineClient()->GetAppID();
@@ -234,6 +235,11 @@ void Plugin::FireGameEvent(IGameEvent* event) {
 
 		m_flCapTimeLeft[index] = ObjectiveResource::Get()->CapTeamCapTime(TEAM_ARRAY(index, team));
 		m_flCapLastThinkTime[index] = Interfaces::GetEngineTools()->ClientTime();
+	}
+	else if (!strcmp(event->GetName(), "teamplay_map_time_remaining")) {
+		int secs = event->GetInt("seconds", -1);
+
+		mapStartTime = Interfaces::GetEngineTools()->ClientTime();
 	}
 }
 
@@ -607,6 +613,10 @@ void SendData() {
 
 				if (player.CheckCondition(TFCond::TFCond_Disguised)) {
 					data["allplayers"][steamid]["isDisguised"] = true;
+				}
+
+				if (player.CheckCondition(TFCond::TFCond_Zoomed)) {
+					data["allplayers"][steamid]["isZoomed"] = true;
 				}
 			}
 
