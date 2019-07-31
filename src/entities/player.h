@@ -15,6 +15,7 @@ public:
 	Player(IClientEntity *entity);
 	Player() {};
 
+	static int GetTargetObserverMode();
 	static Player GetLocalPlayer();
 	static Player GetTargetPlayer();
 
@@ -101,6 +102,8 @@ public:
 	bool IsAlive() const;
 	int GetDisguiseTeam() const;
 	int GetDisguiseClass() const;
+
+	int GetTotalHeadshots() const;
 	int GetTotalDamage() const;
 
 	class Iterator {

@@ -442,9 +442,17 @@ int Player::GetDamage() const {
 	return -1;
 }
 
+int Player::GetTotalHeadshots() const {
+	if (IsValid()) {
+		return (int)* Entities::GetEntityValueAtOffset<int*>(playerEntity.Get(), 6200);		// CTFPlayer > m_ScoreData > m_iHeadshots
+	}
+
+	return -1;
+}
+
 int Player::GetTotalDamage() const {
 	if (IsValid()) {
-		return (int)* Entities::GetEntityProp<int*>(playerEntity.Get(), { "m_ScoreData", "m_iDamageDone" });
+		return (int)* Entities::GetEntityValueAtOffset<int*>(playerEntity.Get(), 6220);		// CTFPlayer > m_ScoreData > m_iDamageDone
 	}
 
 	return -1;
@@ -906,6 +914,11 @@ Player::Iterator Player::Iterable::end() {
 
 Player Player::GetLocalPlayer() {
 	return Interfaces::GetEngineClient()->GetLocalPlayer();
+}
+
+int Player::GetTargetObserverMode() {
+	HLTVCameraOverride* hltvcamera = (HLTVCameraOverride*)Interfaces::GetHLTVCamera();
+	return hltvcamera->m_nCameraMode;
 }
 
 Player Player::GetTargetPlayer() {

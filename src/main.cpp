@@ -302,6 +302,7 @@ void SendData() {
 		data["player"] = {
 			{ "name", targetPlayer.GetName().c_str() },
 			{ "steamid", to_string(targetPlayer.GetSteamID().ConvertToUint64()) },
+			{ "mode", Player::GetTargetObserverMode() },
 		};
 	}
 
@@ -572,6 +573,7 @@ void SendData() {
 				{ "deaths", player.GetDeaths() },
 				{ "assists", player.GetKillAssists() },
 				{ "damage", player.GetDamage() },
+				{ "totalHeadshots", player.GetTotalHeadshots() },
 				{ "totalDamage", player.GetTotalDamage() },
 				{ "healing", player.GetHealing() },
 				{ "respawnTime", player.GetRespawnTime() - Interfaces::GetEngineTools()->ClientTime() },
