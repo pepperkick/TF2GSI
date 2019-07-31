@@ -265,6 +265,9 @@ void LoopTimer() {
 }
 
 void SendData() {
+	Interfaces::GetEngineTools()->ForceSend();
+	Interfaces::GetEngineTools()->ForceUpdateDuringPause();
+
 	Player localPlayer = Player::GetLocalPlayer();
 	Player targetPlayer = Player::GetTargetPlayer();
 
@@ -444,9 +447,11 @@ void SendData() {
 					blueTime = timer1->GetTimeRemaining();
 				}
 
+				bool isPaused = Interfaces::GetEngineClient()->IsPaused();
+
 				data["round"] = {
 					{ "gameType", type },
-					{ "isPaused", Interfaces::GetEngineClient()->IsPaused() },
+					{ "isPaused", isPaused },
 					{ "redTimeLeft", redTime },
 					{ "blueTimeLeft", blueTime },
 					{ "noOfCaps", numOfCaps },
