@@ -1,4 +1,14 @@
-[submodule "vendor/sdk"]
-	path = vendor/sdk
+[submodule "vendor/source"]
+	path = vendor/source
 	url = https://github.com/alliedmodders/hl2sdk
 	branch = tf2
+
+[submodule "vendor/json"]
+	path = vendor/json
+	url = https://github.com/taocpp/json
+	branch = master
+
+[submodule "vendor/libwebsockets"]
+	path = vendor/libwebsockets
+	url = https://github.com/warmcat/libwebsockets
+	branch = master
