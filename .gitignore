@@ -1,6 +1,7 @@
 Release/
 Debug/
 cmake-build-debug/
+vendor/
 .vs/
 *.user
 .vscode/
