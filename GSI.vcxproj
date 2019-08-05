@@ -103,6 +103,16 @@
     <ClCompile Include="src\entities\*.cpp" />
     <ClCompile Include="src\tfdefs.cpp" />
     <ClCompile Include="src\socketserver.cpp" />
+    <ClCompile Include="include\detours\detours.cpp" />
+    <ClCompile Include="include\detours\creatwth.cpp" />
+    <ClCompile Include="include\detours\disasm.cpp" />
+    <ClCompile Include="include\detours\disolarm.cpp" />
+    <ClCompile Include="include\detours\disolarm64.cpp" />
+    <ClCompile Include="include\detours\disolia64.cpp" />
+    <ClCompile Include="include\detours\disolx64.cpp" />
+    <ClCompile Include="include\detours\disolx86.cpp" />
+    <ClCompile Include="include\detours\image.cpp" />
+    <ClCompile Include="include\detours\modules.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\common.h" />
@@ -114,6 +124,7 @@
     <ClInclude Include="src\tfdefs.h" />
     <ClInclude Include="src\camerastate.h" />
     <ClInclude Include="src\socketserver.h" />
+    <ClInclude Include="src\utils\*" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

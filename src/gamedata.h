@@ -38,6 +38,11 @@
 #define SETMODELPOINTER_MASK "xxxxxxxxxxxx?x?"
 #define SETPRIMARYTARGET_SIG "\x55\x8B\xEC\x8B\x45\x08\x83\xEC\x00\x53\x56\x8B\xF1"
 #define SETPRIMARYTARGET_MASK "xxxxxxxx?xxxx"
+#define C_TFGAMERULES_SIG "\x8B\x0D\x00\x00\x00\x00\x8B\x01\x8B\x80\x00\x00\x00\x00\xFF\xD0\x84\xC0\x74\x1E"
+#define C_TFGAMERULES_MASK "xx????xxxx????xxxxxx"
+#define C_TFGAMERULES_OFFSET 2
+#define GETTIME_SIG "\xA1\x00\x00\x00\x00\x8B\x40\x30\x8B\xD0\xC1\xE2\x04\x2B\xD0\xA1\x00\x00\x00\x00\xC1\xE2\x02\xF3\x0F\x2A\xC2\xF3\x0F\x58\x41\x48\xF3\x0F\x5C\x40\x0C\x33\xC0\xF3\x0F\x2C\xC8\x85\xC9\x0F\x49\xC1\xC3"
+#define GETTIME_MASK "x????xxxxxxxxxxx????xxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 #endif
 
 class C_BaseEntity;
@@ -86,7 +91,7 @@ inline DWORD FindPattern(DWORD dwAddress, DWORD dwSize, BYTE* pbSig, const char*
 	return 0;
 }
 
-inline DWORD SignatureScan(const char *moduleName, const char *signature, const char *mask) {
+inline DWORD SignatureScan(const char* moduleName, const char* signature, const char* mask) {
 #if defined _WIN32
 	MODULEINFO clientModInfo;
 	const HMODULE clientModule = GetHandleOfModule(moduleName);

@@ -40,6 +40,7 @@
 #include "Entities/TeamplayRoundRules.h"
 #include "Entities.h"
 #include "ifaces.h"
+#include "gamedata.h"
 
 #include "socketserver.h"
 
@@ -47,6 +48,7 @@
 #include <set>
 #include <string>
 #include <thread>
+#include <mutex>
 #include <chrono>
 
 #include <tao/json.hpp>
@@ -59,6 +61,9 @@
 using namespace std;
 using namespace tao;
 
+#include "exceptions.h"
+#include "Utils/Hook.h"
+
 IServerGameDLL* g_pGameDLL;
 IFileSystem* g_pFileSystem;
 IHLTVDirector* g_pHLTVDirector;
@@ -69,7 +74,7 @@ bool breakPool = false;
 bool inGameFlag = false;
 bool inOvertime = false;
 
-float mapStartTime = 0;
+float g_LastUpdate = 0.0f;
 int g_AppId, g_EventId = 0;
 const char* g_Version;
 
@@ -83,6 +88,13 @@ json::value g_EventData = tao::json::empty_object;
 void LoopTimer();
 void SendData();
 string GetEventKey();
+
+const int VTableElements = 76;
+std::vector<size_t> vtable() {
+	size_t vtbl[VTableElements];
+	memcpy(vtbl, *reinterpret_cast<size_t * *>(Interfaces::GetClientDLL()), VTableElements * sizeof(size_t));
+	return std::vector<size_t>(vtbl, vtbl + sizeof vtbl / sizeof vtbl[0]);
+}
 
 class Plugin : public IServerPluginCallbacks, IGameEventListener2 {
 public:
@@ -132,7 +144,6 @@ bool Plugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn gameServ
 	Interfaces::pGameEventManager->AddListener(this, "teamplay_overtime_end", false);
     Interfaces::pGameEventManager->AddListener(this, "teamplay_game_over", false);
 	Interfaces::pGameEventManager->AddListener(this, "teamplay_win_panel", false);
-	Interfaces::pGameEventManager->AddListener(this, "teamplay_map_time_remaining", false);
 	Interfaces::pGameEventManager->AddListener(this, "controlpoint_updatecapping", false);
 
 	g_AppId = Interfaces::GetEngineClient()->GetAppID();
@@ -157,6 +168,19 @@ bool Plugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn gameServ
 		LogError("Required player helper class\n");
 		return false;
 	}
+
+	static Hook<CallConvention::stdcall_t, HRESULT, ClientFrameStage_t> FrameStageNotify;
+	FrameStageNotify.apply(vtable()[35], [](
+		ClientFrameStage_t a1) -> HRESULT	{
+
+		if (a1 == ClientFrameStage_t::FRAME_NET_UPDATE_POSTDATAUPDATE_END) {
+			g_LastUpdate = Interfaces::GetEngineTools()->ClientTime();
+		}
+
+		auto ret = FrameStageNotify.call_orig(a1);
+
+		return ret;
+	});
 
 	poolReady = true;
 
@@ -236,11 +260,6 @@ void Plugin::FireGameEvent(IGameEvent* event) {
 		m_flCapTimeLeft[index] = ObjectiveResource::Get()->CapTeamCapTime(TEAM_ARRAY(index, team));
 		m_flCapLastThinkTime[index] = Interfaces::GetEngineTools()->ClientTime();
 	}
-	else if (!strcmp(event->GetName(), "teamplay_map_time_remaining")) {
-		int secs = event->GetInt("seconds", -1);
-
-		mapStartTime = Interfaces::GetEngineTools()->ClientTime();
-	}
 }
 
 void Plugin::Transmit(const char* msg) {
@@ -264,6 +283,49 @@ void LoopTimer() {
 	}
 }
 
+class C_TFGameRules;
+
+using Raw = int(__thiscall*)(void*);
+static Raw fn = nullptr;
+
+C_TFGameRules* tfGameRulesClass = nullptr;
+
+C_TFGameRules* GetTFGameRulesClass() {
+#if defined _WIN32
+	static DWORD pointer = NULL;
+
+	if (!tfGameRulesClass) {
+		tfGameRulesClass = **(C_TFGameRules ***)(SignatureScan("client", C_TFGAMERULES_SIG, C_TFGAMERULES_MASK) + C_TFGAMERULES_OFFSET);
+	}
+
+	return tfGameRulesClass;
+#else
+	throw bad_pointer("C_TFGameRules");
+
+	return nullptr;
+#endif
+}
+
+int GetMapTimeLeft() {
+#if defined _WIN32
+	using Raw = int(__thiscall*)(void*);
+
+	if (!fn) {
+		fn = (Raw)SignatureScan("client", GETTIME_SIG, GETTIME_MASK);
+
+		if (!fn) {
+			throw bad_pointer("C_TFGameRules::GetTimeLeft");
+		}
+	}
+
+	return fn((void*) GetTFGameRulesClass());
+#else
+	throw bad_pointer("C_TFGameRules::GetTimeLeft");
+
+	return nullptr;
+#endif
+}
+
 void SendData() {
 	Interfaces::GetEngineTools()->ForceSend();
 	Interfaces::GetEngineTools()->ForceUpdateDuringPause();
@@ -272,7 +334,6 @@ void SendData() {
 	Player targetPlayer = Player::GetTargetPlayer();
 
 	bool isInGame = Interfaces::GetEngineClient()->IsInGame();
-
 	string mapName = Interfaces::GetEngineClient()->GetLevelName();
 	
 	json::value data = tao::json::empty_object;
@@ -355,8 +416,6 @@ void SendData() {
 
 			inOvertime = false;
 			inGameFlag = true;
-
-			mapStartTime = Interfaces::GetEngineTools()->ClientTime();
 		}
 
 		data["map"] = {
@@ -428,6 +487,12 @@ void SendData() {
 				m_flCapLastThinkTime[index] = curtime;
 			}
 
+			bool isPaused = false;
+
+			if (Interfaces::GetEngineTools()->ClientTime() - g_LastUpdate > 3) {
+				isPaused = true;
+			}
+
 			if (isKoth) {
 				RoundTimer::Find(2);
 				RoundTimer* timer1 = RoundTimer::Get(0);
@@ -448,8 +513,6 @@ void SendData() {
 					blueTime = timer1->GetTimeRemaining();
 				}
 
-				bool isPaused = Interfaces::GetEngineClient()->IsPaused();
-
 				data["round"] = {
 					{ "gameType", type },
 					{ "isPaused", isPaused },
@@ -462,20 +525,13 @@ void SendData() {
 				RoundTimer::Find(1);
 				RoundTimer* timer = RoundTimer::Get(0);
 
-				ConVar *cvar_timelimit = Interfaces::GetCvar()->FindVar("mp_timelimit");
-				int timelimit = cvar_timelimit->GetInt() * 60;
-				float timepast = Interfaces::GetEngineTools()->ClientTime() - mapStartTime;
-				float timeleft = timelimit - timepast;
-
 				data["round"] = {
 					{ "gameType", type },
-					{ "isPaused", Interfaces::GetEngineClient()->IsPaused() },
+					{ "isPaused", isPaused },
+					{ "matchTimeLeft", GetMapTimeLeft() },
 					{ "maxLength",  timer->GetMaxLength() },
-					{ "matchTimeLeft", timeleft },
 					{ "roundTimeLeft", timer->GetEndTime() - Interfaces::GetEngineTools()->ClientTime() },
 					{ "noOfCaps", numOfCaps },
-					{ "mapResetTime", TFGameRules::Get()->GetMapResetTime() },
-					{ "mapResetTime2", TeamPlayRoundRules::Get()->GetMapResetTime() },
 				};
 
 			}
@@ -485,10 +541,7 @@ void SendData() {
 
 				data["round"] = {
 					{ "gameType", type },
-					{ "isPaused", Interfaces::GetEngineClient()->IsPaused() },
-					{ "timeRemaining", timer->GetTimeRemaining() },
-					{ "maxLength", timer->GetMaxLength() },
-					{ "endTime", timer->GetEndTime() - Interfaces::GetEngineTools()->ClientTime() },
+					{ "isPaused", isPaused },
 				};
 			}
 
@@ -521,6 +574,8 @@ void SendData() {
 					{ "unlockTime", objective->CapUnlockTime(i) - Interfaces::GetEngineTools()->ClientTime() },
 					{ "playersOnCap", playersOnCap },
 					{ "percentage", percentage },
+					{ "mapResetTime1", TeamPlayRoundRules::Get()->GetMapResetTime() },
+					{ "mapResetTime2", TFGameRules::Get()->GetMapResetTime() },
 				};
 			}
 		}
@@ -544,14 +599,6 @@ void SendData() {
 		for (Player player : Player::Iterable()) {
 			Vector position = player.GetPosition();
 			const char* name = player.GetName().c_str();
-
-			float timepast = Interfaces::GetEngineTools()->ClientTime() - mapStartTime;
-			int minspast = floor(timepast / 60);
-			int dpm = 0;
-
-			if (minspast > 0) {
-				dpm = player.GetDamage() / minspast;
-			}
 
 			if (!tvFlag) {
 				tvFlag = true;
