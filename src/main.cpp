@@ -72,7 +72,6 @@ IVEngineServer* engine;
 bool poolReady = false;
 bool breakPool = false;
 bool inGameFlag = false;
-bool inOvertime = false;
 
 float g_LastUpdate = 0.0f;
 int g_AppId, g_EventId = 0;
@@ -140,8 +139,6 @@ bool Plugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn gameServ
     Interfaces::pGameEventManager->AddListener(this, "teamplay_round_win", false);
 	Interfaces::pGameEventManager->AddListener(this, "teamplay_round_stalemate", false);
 	Interfaces::pGameEventManager->AddListener(this, "teamplay_point_captured", false);
-	Interfaces::pGameEventManager->AddListener(this, "teamplay_overtime_begin", false);
-	Interfaces::pGameEventManager->AddListener(this, "teamplay_overtime_end", false);
     Interfaces::pGameEventManager->AddListener(this, "teamplay_game_over", false);
 	Interfaces::pGameEventManager->AddListener(this, "teamplay_win_panel", false);
 	Interfaces::pGameEventManager->AddListener(this, "controlpoint_updatecapping", false);
@@ -240,12 +237,6 @@ void Plugin::FireGameEvent(IGameEvent* event) {
 
 		m_flCapTimeLeft[index] = 0.0f;
 		m_flCapLastThinkTime[index] = 0;
-	}
-	else if (!strcmp(event->GetName(), "teamplay_overtime_begin")) {
-		inOvertime = true;
-	}
-	else if (!strcmp(event->GetName(), "teamplay_overtime_end")) {
-		inOvertime = false;
 	}
 	else if (!strcmp(event->GetName(), "controlpoint_updatecapping")) {
 		int index = event->GetInt("index", -1);
@@ -414,7 +405,6 @@ void SendData() {
 				m_nPlayersOnCap[i] = 0;
 			}
 
-			inOvertime = false;
 			inGameFlag = true;
 		}
 
@@ -442,6 +432,8 @@ void SendData() {
 					is5cp = true;
 				}
 			}
+			
+			bool isOvertime = *(bool*)((unsigned long)(GetTFGameRulesClass())+(unsigned long)(52));
 			
 			for (int index = 0; index < numOfCaps; index++) {
 				int team = ObjectiveResource::Get()->CappingTeam(index);
@@ -476,7 +468,7 @@ void SendData() {
 						float flDecreaseScale = ObjectiveResource::Get()->DoesCPScaleWithPlayers(index) ? cavr_detoriatetime->GetFloat() : flCapLength;
 						float flDecrease = (flCapLength / flDecreaseScale) * (curtime - m_flCapLastThinkTime[index]);
 
-						if (inOvertime) {
+						if (isOvertime) {
 							flDecrease *= 6;
 						}
 
@@ -488,8 +480,7 @@ void SendData() {
 			}
 
 			bool isPaused = false;
-
-			if (Interfaces::GetEngineTools()->ClientTime() - g_LastUpdate > 3) {
+			if (Interfaces::GetEngineTools()->ClientTime() - g_LastUpdate > 1) {
 				isPaused = true;
 			}
 
@@ -516,6 +507,7 @@ void SendData() {
 				data["round"] = {
 					{ "gameType", type },
 					{ "isPaused", isPaused },
+					{ "isOvertimee", isOvertime },
 					{ "redTimeLeft", redTime },
 					{ "blueTimeLeft", blueTime },
 					{ "noOfCaps", numOfCaps },
@@ -528,6 +520,7 @@ void SendData() {
 				data["round"] = {
 					{ "gameType", type },
 					{ "isPaused", isPaused },
+					{ "isOvertimee", isOvertime },
 					{ "matchTimeLeft", GetMapTimeLeft() },
 					{ "maxLength",  timer->GetMaxLength() },
 					{ "roundTimeLeft", timer->GetEndTime() - Interfaces::GetEngineTools()->ClientTime() },
@@ -542,6 +535,7 @@ void SendData() {
 				data["round"] = {
 					{ "gameType", type },
 					{ "isPaused", isPaused },
+					{ "isOvertimee", isOvertime },
 				};
 			}
 
@@ -574,8 +568,6 @@ void SendData() {
 					{ "unlockTime", objective->CapUnlockTime(i) - Interfaces::GetEngineTools()->ClientTime() },
 					{ "playersOnCap", playersOnCap },
 					{ "percentage", percentage },
-					{ "mapResetTime1", TeamPlayRoundRules::Get()->GetMapResetTime() },
-					{ "mapResetTime2", TFGameRules::Get()->GetMapResetTime() },
 				};
 			}
 		}
@@ -762,7 +754,6 @@ void SendData() {
 		g_EventData = json::empty_object;
 		g_EventId = 0;
 
-		inOvertime = false;
 		inGameFlag = false;
 	}
 
