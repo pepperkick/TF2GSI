@@ -664,6 +664,10 @@ void SendData() {
 				if (player.CheckCondition(TFCond::TFCond_Zoomed)) {
 					data["allplayers"][steamid]["isZoomed"] = true;
 				}
+
+				if (player.CheckCondition(TFCond::TFCond_OnFire)) {
+					data["allplayers"][steamid]["OnFire"] = true;
+				}
 			}
 
 			if (player.IsAlive()) {
