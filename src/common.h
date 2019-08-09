@@ -14,7 +14,7 @@
 class ConCommand;
 
 #define GAME_PANEL_MODULE "ClientDLL"
-#define PLUGIN_VERSION "1.1.5"
+#define PLUGIN_VERSION "1.1.6"
 #define PRINT_TAG() ConColorMsg(Color(0, 153, 153, 255), "[GSI] ")
 #define COLOR_DEBUG Color(255, 255, 255, 255)
 #define COLOR_INFO Color(255, 255, 0, 255)
