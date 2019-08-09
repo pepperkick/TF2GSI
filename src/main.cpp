@@ -73,6 +73,7 @@ bool poolReady = false;
 bool breakPool = false;
 bool inGameFlag = false;
 
+ConVar* g_cvGsiUpdateRate;
 float g_LastUpdate = 0.0f;
 int g_AppId, g_EventId = 0;
 const char* g_Version;
@@ -165,6 +166,9 @@ bool Plugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn gameServ
 		LogError("Required player helper class\n");
 		return false;
 	}
+
+	g_cvGsiUpdateRate = new ConVar("gsi_updaterate", "25", FCVAR_NONE, "Rate of data update for GSI");
+	Interfaces::GetCvar()->RegisterConCommand(g_cvGsiUpdateRate);
 
 	static Hook<CallConvention::stdcall_t, HRESULT, ClientFrameStage_t> FrameStageNotify;
 	FrameStageNotify.apply(vtable()[35], [](
@@ -270,7 +274,7 @@ void Plugin::Transmit(json::value msg) {
 void LoopTimer() {
 	while (poolReady) {
 		SendData();
-		this_thread::sleep_for(chrono::milliseconds(100));
+		this_thread::sleep_for(chrono::milliseconds(g_cvGsiUpdateRate->GetInt()));
 	}
 }
 
