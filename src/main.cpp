@@ -670,7 +670,11 @@ void SendData() {
 				}
 
 				if (player.CheckCondition(TFCond::TFCond_OnFire)) {
-					data["allplayers"][steamid]["OnFire"] = true;
+					data["allplayers"][steamid]["isOnFire"] = true;
+				}
+
+				if (player.CheckCondition(TFCond::TFCond_Kritzkrieged)) {
+					data["allplayers"][steamid]["isKritzkrieged"] = true;
 				}
 			}
 
