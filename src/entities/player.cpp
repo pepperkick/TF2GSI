@@ -300,12 +300,11 @@ int Player::GetHealth() const {
 }
 
 int Player::GetMaxHealth() const {
-	if (!playerResource.Get()) return -1;
-
-	char index[4];
-	GetPropIndexString(playerEntity->entindex(), index);
-
 	if (IsValid()) {
+		if (!playerResource.Get()) return -1;
+
+		char index[4];
+		GetPropIndexString(playerEntity->entindex(), index);
 		return (int)* Entities::GetEntityProp<int*>(playerResource.Get(), { "m_iMaxHealth", index });
 	}
 
@@ -313,12 +312,11 @@ int Player::GetMaxHealth() const {
 }
 
 int Player::GetMaxBuffedHealth() const {
-	if (!playerResource.Get()) return -1;
-
-	char index[4];
-	GetPropIndexString(playerEntity->entindex(), index);
-
 	if (IsValid()) {
+		if (!playerResource.Get()) return -1;
+
+		char index[4];
+		GetPropIndexString(playerEntity->entindex(), index);
 		return (int)* Entities::GetEntityProp<int*>(playerResource.Get(), { "m_iMaxBuffedHealth", index });
 	}
 
@@ -378,25 +376,23 @@ int Player::GetDominatedBy() const {
 }
 
 int Player::GetScore() const {
-	if (!playerResource.Get()) return -1;
-
-	char index[4];
-	GetPropIndexString(playerEntity->entindex(), index);
-
 	if (IsValid()) {
+		if (!playerResource.Get()) return -1;
+
+		char index[4];
+		GetPropIndexString(playerEntity->entindex(), index);
 		return (int)* Entities::GetEntityProp<int*>(playerResource.Get(), { "m_iScore", index });
 	}
 
 	return -1;
 }
 
-int Player::GetTotalScore() const {	
-	if (!playerResource.Get()) return -1;
-
-	char index[4];
-	GetPropIndexString(playerEntity->entindex(), index);
-
+int Player::GetTotalScore() const {
 	if (IsValid()) {
+		if (!playerResource.Get()) return -1;
+
+		char index[4];
+		GetPropIndexString(playerEntity->entindex(), index);
 		return (int)* Entities::GetEntityProp<int*>(playerResource.Get(), { "m_iTotalScore", index });
 	}
 
@@ -404,12 +400,11 @@ int Player::GetTotalScore() const {
 }
 
 int Player::GetDeaths() const {
-	if (!playerResource.Get()) return -1;
-
-	char index[4];
-	GetPropIndexString(playerEntity->entindex(), index);
-
 	if (IsValid()) {
+		if (!playerResource.Get()) return -1;
+
+		char index[4];
+		GetPropIndexString(playerEntity->entindex(), index);
 		return (int)* Entities::GetEntityProp<int*>(playerResource.Get(), { "m_iDeaths", index });
 	}
 
@@ -417,12 +412,11 @@ int Player::GetDeaths() const {
 }
 
 int Player::GetHealing() const {
-	if (!playerResource.Get()) return -1;
-
-	char index[4];
-	GetPropIndexString(playerEntity->entindex(), index);
-
 	if (IsValid()) {
+		if (!playerResource.Get()) return -1;
+
+		char index[4];
+		GetPropIndexString(playerEntity->entindex(), index);
 		return (int)* Entities::GetEntityProp<int*>(playerResource.Get(), { "m_iHealing", index });
 	}
 
@@ -430,12 +424,11 @@ int Player::GetHealing() const {
 }
 
 int Player::GetDamage() const {
-	if (!playerResource.Get()) return -1;
-
-	char index[4];
-	GetPropIndexString(playerEntity->entindex(), index);
-
 	if (IsValid()) {
+		if (!playerResource.Get()) return -1;
+
+		char index[4];
+		GetPropIndexString(playerEntity->entindex(), index);
 		return (int)* Entities::GetEntityProp<int*>(playerResource.Get(), { "m_iDamage", index });
 	}
 
@@ -459,12 +452,11 @@ int Player::GetTotalDamage() const {
 }
 
 int Player::GetCaptures() const {
-	if (!playerResource.Get()) return -1;
-
-	char index[4];
-	GetPropIndexString(playerEntity->entindex(), index);
-
 	if (IsValid()) {
+		if (!playerResource.Get()) return -1;
+
+		char index[4];
+		GetPropIndexString(playerEntity->entindex(), index);
 		return (int)* Entities::GetEntityProp<int*>(playerResource.Get(), { "m_iCaptures", index });
 	}
 
@@ -552,12 +544,11 @@ int Player::GetKillstreak(int i) const {
 }
 
 float Player::GetRespawnTime() const {
-	if (!playerResource.Get()) return -1;
-
-	char index[4];
-	GetPropIndexString(playerEntity->entindex(), index);
-
 	if (IsValid()) {
+		if (!playerResource.Get()) return -1;
+
+		char index[4];
+		GetPropIndexString(playerEntity->entindex(), index);
 		return (float)* Entities::GetEntityProp<float*>(playerResource.Get(), { "m_flNextRespawnTime", index });
 	}
 
