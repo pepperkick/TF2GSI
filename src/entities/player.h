@@ -9,10 +9,12 @@ class IClientEntity;
 
 #include "../tfdefs.h"
 
+#include <tao/json.hpp>
+
 class Player {
 public:
-	Player(int entindex);
 	Player(IClientEntity *entity);
+	Player(int entindex);
 	Player() {};
 
 	static int GetTargetObserverMode();
@@ -53,6 +55,8 @@ public:
 	IClientEntity *operator->() const;
 
 	IClientEntity *GetEntity() const;
+
+	tao::json::value GetData();
 
 	Vector GetPosition() const;
 	bool FindCondition();
@@ -138,9 +142,10 @@ public:
 		Iterator end();
 	};
 
+	static void SetPlayerResource(CHandle<IClientEntity>);
+	static void InitOffsets();
 	static bool CheckDependencies();
 	static void FindPlayerResource();
-	static void SetPlayerResource(CHandle<IClientEntity>);
 	static bool classRetrievalAvailable;
 	static bool comparisonAvailable;
 	static bool conditionsRetrievalAvailable;
@@ -150,6 +155,76 @@ public:
 	static bool playerResourceAvailable;
 
 private:
+	static struct PlayerResourceOffsets {
+		int m_iMaxHealth;
+		int m_iMaxBuffedHealth;
+		int m_iScore;
+		int m_iTotalScore;
+		int m_iDeaths;
+		int m_iHealing;
+		int m_iDamage;
+		int m_iCaptures;
+		int m_flNextRespawnTime;
+	} playerResourceOffsets;
+
+	static struct Offsets {
+		int m_iClass;
+		int m_iHealth;
+		int m_iMaxHealth;
+		int m_iTeamNum;
+		int m_lifeState;
+		int m_hActiveWeapon;
+		int m_iAmmo;
+		int m_nDisguiseTeam;
+		int m_nDisguiseClass;
+
+		struct TotalStats {
+			int m_iCaptures;
+			int m_iDefenses;
+			int m_iKills;
+			int m_iDeaths;
+			int m_iSuicides;
+			int m_iDominations;
+			int m_iRevenge;
+			int m_iBuildingsBuilt;
+			int m_iBuildingsDestroyed;
+			int m_iHeadshots;
+			int m_iBackstabs;
+			int m_iHealPoints;
+			int m_iInvulns;
+			int m_iTeleports;
+			int m_iDamageDone;
+			int m_iCrits;
+			int m_iResupplyPoints;
+			int m_iKillAssists;
+			int m_iBonusPoints;
+			int m_iPoints;
+		} totalStats;
+
+		struct RoundStats {
+			int m_iCaptures;
+			int m_iDefenses;
+			int m_iKills;
+			int m_iDeaths;
+			int m_iSuicides;
+			int m_iDominations;
+			int m_iRevenge;
+			int m_iBuildingsBuilt;
+			int m_iBuildingsDestroyed;
+			int m_iHeadshots;
+			int m_iBackstabs;
+			int m_iHealPoints;
+			int m_iInvulns;
+			int m_iTeleports;
+			int m_iDamageDone;
+			int m_iCrits;
+			int m_iResupplyPoints;
+			int m_iKillAssists;
+			int m_iBonusPoints;
+			int m_iPoints;
+		} roundStats;
+	} offsets;
+
 	CHandle<IClientEntity> playerEntity;
 	uint32_t playerConditions[4];
 

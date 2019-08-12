@@ -33,6 +33,21 @@ public:
 
 private:
 	static ObjectiveResource* instance;
+	static struct Offsets {
+		int m_iNumControlPoints;
+		int m_bCPLocked;
+		int m_bCPCapRateScalesWithPlayers;
+		int m_flPathDistance;
+		int m_flUnlockTimes;
+		int m_flCPTimerTimes;
+		int m_iCappingTeam;
+		int m_iTeamInZone;
+		int m_bBlocked;
+		int m_iNumTeamMembers;
+		int m_flTeamCapTime;
+		int m_iOwner;
+		int m_flLazyCapPerc;
+	} offsets;
 
 	CHandle<IClientEntity> entity;
 };

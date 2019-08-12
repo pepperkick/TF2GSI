@@ -8,14 +8,24 @@
 
 Team* Team::blueTeam = nullptr;
 Team* Team::redTeam = nullptr;
+Team::Offsets Team::offsets;
 
 Team::Team(IClientEntity* entity) {
-	teamEntity = entity;
+	this->entity = entity;
+
+	const char* classname = Entities::GetEntityClassname(this->entity);
+
+	this->offsets.m_szTeamname
+		= Entities::GetClassPropOffset(classname, { "m_szTeamname" });
+	this->offsets.m_iScore
+		= Entities::GetClassPropOffset(classname, { "m_iScore" });
+	this->offsets.m_iRoundsWon
+		= Entities::GetClassPropOffset(classname, { "m_iRoundsWon" });
 }
 
 std::string Team::GetName() const {
 	if (IsValid()) {
-		return (std::string)* Entities::GetEntityProp<std::string*>(teamEntity, { "m_szTeamname" });
+		return (std::string)* Entities::GetEntityValueAtOffset<std::string*>(this->entity, this->offsets.m_szTeamname);
 	}
 
 	return "";
@@ -23,7 +33,7 @@ std::string Team::GetName() const {
 
 int Team::GetScore() const {
 	if (IsValid()) {
-		return (int)* Entities::GetEntityProp<int*>(teamEntity, { "m_iScore" });
+		return (int)* Entities::GetEntityValueAtOffset<int*>(this->entity, this->offsets.m_iScore);
 	}
 
 	return -1;
@@ -31,14 +41,14 @@ int Team::GetScore() const {
 
 int Team::GetRoundsWon() const {
 	if (IsValid()) {
-		return (int)* Entities::GetEntityProp<int*>(teamEntity, { "m_iRoundsWon" });
+		return (int)* Entities::GetEntityValueAtOffset<int*>(this->entity, this->offsets.m_iRoundsWon);
 	}
 
 	return -1;
 }
 
 bool Team::IsValid() const {
-	return teamEntity.IsValid() && Entities::CheckEntityBaseclass(teamEntity, "TFTeam");
+	return entity.IsValid() && Entities::CheckEntityBaseclass(entity, "TFTeam");
 }
 
 void Team::SetBlueTeam(Team* team) { blueTeam = team; }

@@ -23,6 +23,11 @@ public:
 private:
 	static Team* blueTeam;
 	static Team* redTeam;
+	static struct Offsets {
+		int m_szTeamname;
+		int m_iScore;
+		int m_iRoundsWon;
+	} offsets;
 
-	CHandle<IClientEntity> teamEntity;
+	CHandle<IClientEntity> entity;
 };

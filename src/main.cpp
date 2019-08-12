@@ -37,7 +37,6 @@
 #include "Entities/RoundTimer.h"
 #include "Entities/TFGameRules.h"
 #include "Entities/Objective.h"
-#include "Entities/TeamplayRoundRules.h"
 #include "Entities.h"
 #include "ifaces.h"
 #include "gamedata.h"
@@ -390,18 +389,12 @@ void SendData() {
 					}
 				}
 
-				if (Entities::CheckEntityBaseclass(entity, "TFGameRulesProxy")) {
-					TFGameRules::Set(new TFGameRules(entity));
-				}
-
 				if (Entities::CheckEntityBaseclass(entity, "BaseTeamObjectiveResource")) {
 					ObjectiveResource::Set(new ObjectiveResource(entity));
 				}
-
-				if (Entities::CheckEntityBaseclass(entity, "TeamplayRoundBasedRulesProxy")) {
-					TeamPlayRoundRules::Set(new TeamPlayRoundRules(entity));
-				}
 			}
+
+			Player::InitOffsets();
 
 			for (int i = 0; i < MAX_CONTROL_POINTS; i++) {
 				m_flCapTimeLeft[i] = 0.0f;
@@ -603,157 +596,7 @@ void SendData() {
 
 			string steamid = to_string(player.GetSteamID().ConvertToUint64());
 
-			data["allplayers"][steamid] = {
-				{ "name", player.GetName().c_str() },
-				{ "steamid", steamid },
-				{ "team", static_cast<int>(player.GetTeam()) },
-				{ "health", player.GetHealth() },
-				{ "maxHealth", player.GetMaxHealth() },
-				{ "class", static_cast<int>(player.GetClass()) },
-				{ "alive", player.IsAlive() },
-				{ "score", player.GetTotalScore() },
-				{ "kills", player.GetScore() },
-				{ "deaths", player.GetDeaths() },
-				{ "assists", player.GetKillAssists() },
-				{ "damage", player.GetDamage() },
-				{ "totalHeadshots", player.GetTotalHeadshots() },
-				{ "totalDamage", player.GetTotalDamage() },
-				{ "healing", player.GetHealing() },
-				{ "respawnTime", player.GetRespawnTime() - Interfaces::GetEngineTools()->ClientTime() },
-				{ "position", { { "x", position.x }, { "y", position.y }, { "z", position.z } } }
-			};
-
-			if (player.FindCondition()) {
-				if (player.CheckCondition(TFCond::TFCond_Slowed)) {
-					data["allplayers"][steamid]["isSlowed"] = true;
-				}
-
-				if (player.CheckCondition(TFCond::TFCond_Ubercharged)) {
-					data["allplayers"][steamid]["isUbered"] = true;
-				}
-
-				if (player.CheckCondition(TFCond::TFCond_Bleeding)) {
-					data["allplayers"][steamid]["isBleeding"] = true;
-				}
-
-				if (player.CheckCondition(TFCond::TFCond_Bonked)) {
-					data["allplayers"][steamid]["isBonked"] = true;
-				}
-
-				if (player.CheckCondition(TFCond::TFCond_MarkedForDeath)) {
-					data["allplayers"][steamid]["isMarkedForDeath"] = true;
-				}
-
-				if (player.CheckCondition(TFCond::TFCond_MarkedForDeathSilent)) {
-					data["allplayers"][steamid]["isMarkedForDeath"] = true;
-					data["allplayers"][steamid]["isMarkedForDeathSilent"] = true;
-				}
-
-				if (player.CheckCondition(TFCond::TFCond_SpeedBuffAlly)) {
-					data["allplayers"][steamid]["isAllySpeedBuffed"] = true;
-				}
-
-				if (player.CheckCondition(TFCond::TFCond_Cloaked)) {
-					data["allplayers"][steamid]["isCloaked"] = true;
-				}
-
-				if (player.CheckCondition(TFCond::TFCond_CloakFlicker)) {
-					data["allplayers"][steamid]["isCloakFlickering"] = true;
-				}
-
-				if (player.CheckCondition(TFCond::TFCond_Disguised)) {
-					data["allplayers"][steamid]["isDisguised"] = true;
-				}
-
-				if (player.CheckCondition(TFCond::TFCond_Zoomed)) {
-					data["allplayers"][steamid]["isZoomed"] = true;
-				}
-
-				if (player.CheckCondition(TFCond::TFCond_OnFire)) {
-					data["allplayers"][steamid]["isOnFire"] = true;
-				}
-
-				if (player.CheckCondition(TFCond::TFCond_Kritzkrieged)) {
-					data["allplayers"][steamid]["isKritzkrieged"] = true;
-				}
-			}
-
-			if (player.IsAlive()) {
-				CHandle<IClientEntity> weapon = CHandle<IClientEntity>(player.GetActiveWeapon());
-
-				if (weapon) {
-					int type = *Entities::GetEntityProp<int*>(weapon, { "m_iPrimaryAmmoType" });
-					int ammo = -1;
-
-					if (type != -1)
-						ammo = player.GetWeaponAmmo(type);
-
-					data["allplayers"][steamid]["weapon"] = {
-						{ "class", Entities::GetEntityClassname(weapon) },
-						{ "clip1", *Entities::GetEntityProp<int*>(weapon.Get(), { "m_iClip1" }) },
-						{ "clip2", *Entities::GetEntityProp<int*>(weapon.Get(), { "m_iClip2" }) },
-						{ "index", *Entities::GetEntityProp<int*>(weapon.Get(), { "m_iItemDefinitionIndex" }) },
-						{ "reserve", ammo },
-					};
-				}
-			}
-
-			if (player.GetClass() == TFClassType::TFClass_Medic) {
-				int type = player.GetMedigunType();
-				float charge = player.GetMedigunCharge();
-				bool isHealing = player.IsMedigunHealing();
-
-				string name;
-				name = "Unknown";
-
-				std::ostringstream targetId;
-				targetId.str("");
-				targetId.clear();
-
-				// TODO: Fix this
-				if (isHealing) {
-					CHandle<IClientEntity> target = player.GetMedigunTarget();
-					if (target) {
-						int index = target.GetEntryIndex();
-						Player healing = Player(index);
-						
-						targetId << healing.GetSteamID().ConvertToUint64();
-					}
-				}
-
-				switch (type) {
-				case TFMedigun_Unknown:
-					name = "Unknown";
-					break;
-				case TFMedigun_MediGun:
-					name = "MediGun";
-					break;
-				case TFMedigun_Kritzkrieg:
-					name = "Kritzkrieg";
-					break;
-				case TFMedigun_QuickFix:
-					name = "QuickFix";
-					break;
-				case TFMedigun_Vaccinator:
-					name = "Vaccinator";
-					break;
-				default:
-					name = "Unknown";
-				}
-
-				data["allplayers"][steamid]["medigun"] = {
-					{ "type", name },
-					{ "charge", charge },
-					{ "target",  targetId.str() },
-				};
-			}
-			else if (player.GetClass() == TFClassType::TFClass_Spy) {
-
-				data["allplayers"][steamid]["disguise"] = {
-					{ "class", player.GetDisguiseClass() },
-					{ "team", player.GetDisguiseTeam() },
-				};
-			}
+			data["allplayers"][steamid] = player.GetData();
 		}
 	}
 	else {

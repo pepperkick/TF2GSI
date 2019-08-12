@@ -10,6 +10,10 @@ TFGameRules* TFGameRules::instance = nullptr;
 
 TFGameRules::TFGameRules(IClientEntity* entity) {
 	this->entity = entity;
+
+	const char* classname = Entities::GetEntityClassname(this->entity);
+
+
 }
 
 int TFGameRules::GetRoundsPlayed() const {

@@ -21,14 +21,18 @@
 #include "../ifaces.h"
 #include "../camerastate.h"
 
-CHandle<IClientEntity> playerResource;
+using namespace tao;
 
-Player::Player(int entindex) {
-	playerEntity = Interfaces::pClientEntityList->GetClientEntity(entindex);
-}
+CHandle<IClientEntity> playerResource;
+Player::Offsets Player::offsets;
+Player::PlayerResourceOffsets Player::playerResourceOffsets;
 
 Player::Player(IClientEntity *entity) {
-	playerEntity = entity;
+	this->playerEntity = entity;
+}
+
+Player::Player(int entindex) {
+	this->playerEntity = Interfaces::pClientEntityList->GetClientEntity(entindex);
 }
 
 Player& Player::operator=(int entindex) {
@@ -229,6 +233,176 @@ IClientEntity *Player::operator->() const {
 
 IClientEntity *Player::GetEntity() const {
 	return playerEntity;
+}
+
+json::value Player::GetData() {
+	std::string steamid = std::to_string(this->GetSteamID().ConvertToUint64());
+	Vector position = dynamic_cast<C_BaseEntity*>(playerEntity.Get())->GetAbsOrigin();
+	bool isAlive = dynamic_cast<C_BaseEntity*>(playerEntity.Get())->IsAlive();
+	int tfCLass = (TFClassType)* Entities::GetEntityValueAtOffset<int*>(this->playerEntity, this->offsets.m_iClass);
+
+	json::value data = {
+		{ "name",		this->GetName().c_str() },
+		{ "steamid",	steamid },
+		{ "alive",		isAlive },
+		{ "maxHealth",	(int)* Entities::GetEntityValueAtOffset<int*>(playerResource.Get(), this->playerResourceOffsets.m_iMaxHealth + (4 * playerEntity.GetEntryIndex())) },
+		{ "team",		(int)* Entities::GetEntityValueAtOffset<int*>(this->playerEntity.Get(), this->offsets.m_iTeamNum) },
+		{ "health",		(int)* Entities::GetEntityValueAtOffset<int*>(this->playerEntity.Get(), this->offsets.m_iHealth) },
+		{ "class",		(int)* Entities::GetEntityValueAtOffset<int*>(this->playerEntity.Get(), this->offsets.m_iClass) },
+		{ "totalStats", {
+			{ "score",		(int)* Entities::GetEntityValueAtOffset<int*>(this->playerEntity, this->offsets.totalStats.m_iPoints) },
+			{ "kills",		(int)* Entities::GetEntityValueAtOffset<int*>(this->playerEntity, this->offsets.totalStats.m_iKills) },
+			{ "assists",	(int)* Entities::GetEntityValueAtOffset<int*>(this->playerEntity, this->offsets.totalStats.m_iKillAssists) },
+			{ "deaths",		(int)* Entities::GetEntityValueAtOffset<int*>(this->playerEntity, this->offsets.totalStats.m_iDeaths) },
+			{ "damage",		(int)* Entities::GetEntityValueAtOffset<int*>(this->playerEntity, this->offsets.totalStats.m_iDamageDone) },
+			{ "headshots",	(int)* Entities::GetEntityValueAtOffset<int*>(this->playerEntity, this->offsets.totalStats.m_iHeadshots) },
+			{ "healing",	(int)* Entities::GetEntityValueAtOffset<int*>(this->playerEntity, this->offsets.totalStats.m_iHealPoints) },
+		}},
+		{ "rountStats", {
+			{ "score",		(int)* Entities::GetEntityValueAtOffset<int*>(this->playerEntity, this->offsets.roundStats.m_iPoints) },
+			{ "kills",		(int)* Entities::GetEntityValueAtOffset<int*>(this->playerEntity, this->offsets.roundStats.m_iKills) },
+			{ "assists",	(int)* Entities::GetEntityValueAtOffset<int*>(this->playerEntity, this->offsets.roundStats.m_iKillAssists) },
+			{ "deaths",		(int)* Entities::GetEntityValueAtOffset<int*>(this->playerEntity, this->offsets.roundStats.m_iDeaths) },
+			{ "damage",		(int)* Entities::GetEntityValueAtOffset<int*>(this->playerEntity, this->offsets.roundStats.m_iDamageDone) },
+			{ "headshots",	(int)* Entities::GetEntityValueAtOffset<int*>(this->playerEntity, this->offsets.roundStats.m_iHeadshots) },
+			{ "healing",	(int)* Entities::GetEntityValueAtOffset<int*>(this->playerEntity, this->offsets.roundStats.m_iHealPoints) },
+		}},
+		{ "respawnTime", (float)* Entities::GetEntityValueAtOffset<float*>(playerResource, this->playerResourceOffsets.m_flNextRespawnTime + (4 * playerEntity.GetEntryIndex())) - Interfaces::GetEngineTools()->ClientTime() },
+		{ "position", { { "x", position.x }, { "y", position.y }, { "z", position.z } } }
+	};
+
+	if (this->FindCondition()) {
+		if (this->CheckCondition(TFCond::TFCond_Slowed)) {
+			data["isSlowed"] = true;
+		}
+
+		if (this->CheckCondition(TFCond::TFCond_Ubercharged)) {
+			data["isUbered"] = true;
+		}
+
+		if (this->CheckCondition(TFCond::TFCond_Bleeding)) {
+			data["isBleeding"] = true;
+		}
+
+		if (this->CheckCondition(TFCond::TFCond_Bonked)) {
+			data["isBonked"] = true;
+		}
+
+		if (this->CheckCondition(TFCond::TFCond_MarkedForDeath)) {
+			data["isMarkedForDeath"] = true;
+		}
+
+		if (this->CheckCondition(TFCond::TFCond_MarkedForDeathSilent)) {
+			data["isMarkedForDeath"] = true;
+			data["isMarkedForDeathSilent"] = true;
+		}
+
+		if (this->CheckCondition(TFCond::TFCond_SpeedBuffAlly)) {
+			data["isAllySpeedBuffed"] = true;
+		}
+
+		if (this->CheckCondition(TFCond::TFCond_Cloaked)) {
+			data["isCloaked"] = true;
+		}
+
+		if (this->CheckCondition(TFCond::TFCond_CloakFlicker)) {
+			data["isCloakFlickering"] = true;
+		}
+
+		if (this->CheckCondition(TFCond::TFCond_Disguised)) {
+			data["isDisguised"] = true;
+		}
+
+		if (this->CheckCondition(TFCond::TFCond_Zoomed)) {
+			data["isZoomed"] = true;
+		}
+
+		if (this->CheckCondition(TFCond::TFCond_OnFire)) {
+			data["isOnFire"] = true;
+		}
+
+		if (this->CheckCondition(TFCond::TFCond_Kritzkrieged)) {
+			data["isKritzkrieged"] = true;
+		}
+
+		if (isAlive) {
+			CHandle<IClientEntity> weapon = CHandle<IClientEntity>(this->GetActiveWeapon());
+
+			if (weapon) {
+				int type = *Entities::GetEntityProp<int*>(weapon, { "m_iPrimaryAmmoType" });
+				int ammo = -1;
+
+				if (type != -1)
+					ammo = this->GetWeaponAmmo(type);
+
+				data["weapon"] = {
+					{ "class", Entities::GetEntityClassname(weapon) },
+					{ "clip1", *Entities::GetEntityProp<int*>(weapon.Get(), { "m_iClip1" }) },
+					{ "clip2", *Entities::GetEntityProp<int*>(weapon.Get(), { "m_iClip2" }) },
+					{ "index", *Entities::GetEntityProp<int*>(weapon.Get(), { "m_iItemDefinitionIndex" }) },
+					{ "reserve", ammo },
+				};
+			}
+		}
+
+
+		if (tfCLass == TFClassType::TFClass_Medic) {
+			int type = this->GetMedigunType();
+			float charge = this->GetMedigunCharge();
+			bool isHealing = this->IsMedigunHealing();
+
+			std::string name;
+			name = "Unknown";
+
+			std::ostringstream targetId;
+			targetId.str("");
+			targetId.clear();
+
+			// TODO: Fix this
+			if (isHealing) {
+				CHandle<IClientEntity> target = this->GetMedigunTarget();
+				if (target) {
+					int index = target.GetEntryIndex();
+					Player healing = Player(index);
+
+					targetId << healing.GetSteamID().ConvertToUint64();
+				}
+			}
+
+			switch (type) {
+			case TFMedigun_Unknown:
+				name = "Unknown";
+				break;
+			case TFMedigun_MediGun:
+				name = "MediGun";
+				break;
+			case TFMedigun_Kritzkrieg:
+				name = "Kritzkrieg";
+				break;
+			case TFMedigun_QuickFix:
+				name = "QuickFix";
+				break;
+			case TFMedigun_Vaccinator:
+				name = "Vaccinator";
+				break;
+			default:
+				name = "Unknown";
+			}
+
+			data["medigun"] = {
+				{ "type", name },
+				{ "charge", charge },
+				{ "target",  targetId.str() },
+			};
+		}
+		else if (tfCLass == TFClassType::TFClass_Spy) {
+			data["disguise"] = {
+				{ "class", this->GetDisguiseClass() },
+				{ "team", this->GetDisguiseTeam() },
+			};
+		}
+	}
+	return data;
 }
 
 bool Player::FindCondition() {
@@ -585,7 +759,7 @@ CSteamID Player::GetSteamID() const {
 
 int Player::GetDisguiseTeam() const {
 	if (IsValid()) {
-		return (int)* Entities::GetEntityProp<int*>(playerEntity.Get(), { "m_nDisguiseTeam" });
+		return *Entities::GetEntityValueAtOffset<int*>(playerEntity, offsets.m_nDisguiseTeam);
 	}
 
 	return 0;
@@ -593,7 +767,7 @@ int Player::GetDisguiseTeam() const {
 
 int Player::GetDisguiseClass() const {
 	if (IsValid()) {
-		return (int)* Entities::GetEntityProp<int*>(playerEntity.Get(), { "m_nDisguiseClass" });
+		return *Entities::GetEntityValueAtOffset<int*>(playerEntity, offsets.m_nDisguiseClass);
 	}
 
 	return 0;
@@ -623,18 +797,15 @@ int Player::GetUserID() const {
 
 int Player::GetActiveWeapon() const {
 	if (IsValid()) {
-		return *Entities::GetEntityProp<int*>(playerEntity.Get(), { "m_hActiveWeapon" });
+		return *Entities::GetEntityValueAtOffset<int*>(playerEntity.Get(), offsets.m_hActiveWeapon);
 	}
 
 	return nullptr;
 }
 
 int Player::GetWeaponAmmo(int i) const {
-	char index[4];
-	sprintf(index, "%03d", i);
-
 	if (IsValid()) {
-		return *Entities::GetEntityProp<int*>(playerEntity.Get(), { "m_iAmmo", index });
+		return *Entities::GetEntityValueAtOffset<int*>(playerEntity.Get(), offsets.m_iAmmo + (4 * i));
 	}
 
 	return nullptr;
@@ -1047,6 +1218,104 @@ void Player::FindPlayerResource() {
 	}
 }
 
+void Player::InitOffsets() {
+	const char* classname = "CTFPlayer";
+
+	offsets.m_iClass =
+		Entities::GetClassPropOffset(classname, { "m_iClass" });
+	offsets.m_iHealth =
+		Entities::GetClassPropOffset(classname, { "m_iHealth" });
+	offsets.m_iTeamNum =
+		Entities::GetClassPropOffset(classname, { "m_iTeamNum" });
+	offsets.m_lifeState =
+		Entities::GetClassPropOffset(classname, { "m_lifeState" });
+	offsets.m_hActiveWeapon =
+		Entities::GetClassPropOffset(classname, { "m_hActiveWeapon" });
+	offsets.m_iAmmo =
+		Entities::GetClassPropOffset(classname, { "m_iAmmo" });
+	offsets.m_nDisguiseTeam =
+		Entities::GetClassPropOffset(classname, { "m_nDisguiseTeam" });
+	offsets.m_nDisguiseClass =
+		Entities::GetClassPropOffset(classname, { "m_nDisguiseClass" });
+
+	offsets.totalStats.m_iCaptures =
+		Entities::GetClassPropOffset(classname, { "m_ScoreData", "m_iCaptures" });
+	offsets.totalStats.m_iDefenses =
+		Entities::GetClassPropOffset(classname, { "m_ScoreData", "m_iDefenses" });
+	offsets.totalStats.m_iKills =
+		Entities::GetClassPropOffset(classname, { "m_ScoreData", "m_iKills" });
+	offsets.totalStats.m_iBuildingsBuilt =
+		Entities::GetClassPropOffset(classname, { "m_ScoreData", "m_iBuildingsBuilt" });
+	offsets.totalStats.m_iBuildingsDestroyed =
+		Entities::GetClassPropOffset(classname, { "m_ScoreData", "m_iBuildingsDestroyed" });
+	offsets.totalStats.m_iHeadshots =
+		Entities::GetClassPropOffset(classname, { "m_ScoreData", "m_iHeadshots" });
+	offsets.totalStats.m_iBackstabs =
+		Entities::GetClassPropOffset(classname, { "m_ScoreData", "m_iBackstabs" });
+	offsets.totalStats.m_iHealPoints =
+		Entities::GetClassPropOffset(classname, { "m_ScoreData", "m_iHealPoints" });
+	offsets.totalStats.m_iInvulns =
+		Entities::GetClassPropOffset(classname, { "m_ScoreData", "m_iInvulns" });
+	offsets.totalStats.m_iTeleports =
+		Entities::GetClassPropOffset(classname, { "m_ScoreData", "m_iTeleports" });
+	offsets.totalStats.m_iDamageDone =
+		Entities::GetClassPropOffset(classname, { "m_ScoreData", "m_iDamageDone" });
+	offsets.totalStats.m_iCrits =
+		Entities::GetClassPropOffset(classname, { "m_ScoreData", "m_iCrits" });
+	offsets.totalStats.m_iResupplyPoints =
+		Entities::GetClassPropOffset(classname, { "m_ScoreData", "m_iResupplyPoints" });
+	offsets.totalStats.m_iKillAssists =
+		Entities::GetClassPropOffset(classname, { "m_ScoreData", "m_iKillAssists" });
+	offsets.totalStats.m_iBonusPoints =
+		Entities::GetClassPropOffset(classname, { "m_ScoreData", "m_iBonusPoints" });
+	offsets.totalStats.m_iPoints =
+		Entities::GetClassPropOffset(classname, { "m_ScoreData", "m_iPoints" });
+	offsets.totalStats.m_iDeaths =
+		Entities::GetClassPropOffset(classname, { "m_ScoreData", "m_iDeaths" });
+
+	offsets.roundStats.m_iCaptures =
+		Entities::GetClassPropOffset(classname, { "m_RoundScoreData", "m_iCaptures" });
+	offsets.roundStats.m_iDefenses =
+		Entities::GetClassPropOffset(classname, { "m_RoundScoreData", "m_iDefenses" });
+	offsets.roundStats.m_iKills =
+		Entities::GetClassPropOffset(classname, { "m_RoundScoreData", "m_iKills" });
+	offsets.roundStats.m_iBuildingsBuilt =
+		Entities::GetClassPropOffset(classname, { "m_RoundScoreData", "m_iBuildingsBuilt" });
+	offsets.roundStats.m_iBuildingsDestroyed =
+		Entities::GetClassPropOffset(classname, { "m_RoundScoreData", "m_iBuildingsDestroyed" });
+	offsets.roundStats.m_iHeadshots =
+		Entities::GetClassPropOffset(classname, { "m_RoundScoreData", "m_iHeadshots" });
+	offsets.roundStats.m_iBackstabs =
+		Entities::GetClassPropOffset(classname, { "m_RoundScoreData", "m_iBackstabs" });
+	offsets.roundStats.m_iHealPoints =
+		Entities::GetClassPropOffset(classname, { "m_RoundScoreData", "m_iHealPoints" });
+	offsets.roundStats.m_iInvulns =
+		Entities::GetClassPropOffset(classname, { "m_RoundScoreData", "m_iInvulns" });
+	offsets.roundStats.m_iTeleports =
+		Entities::GetClassPropOffset(classname, { "m_RoundScoreData", "m_iTeleports" });
+	offsets.roundStats.m_iDamageDone =
+		Entities::GetClassPropOffset(classname, { "m_RoundScoreData", "m_iDamageDone" });
+	offsets.roundStats.m_iCrits =
+		Entities::GetClassPropOffset(classname, { "m_RoundScoreData", "m_iCrits" });
+	offsets.roundStats.m_iResupplyPoints =
+		Entities::GetClassPropOffset(classname, { "m_RoundScoreData", "m_iResupplyPoints" });
+	offsets.roundStats.m_iKillAssists =
+		Entities::GetClassPropOffset(classname, { "m_RoundScoreData", "m_iKillAssists" });
+	offsets.roundStats.m_iBonusPoints =
+		Entities::GetClassPropOffset(classname, { "m_RoundScoreData", "m_iBonusPoints" });
+	offsets.roundStats.m_iPoints =
+		Entities::GetClassPropOffset(classname, { "m_RoundScoreData", "m_iPoints" });
+	offsets.roundStats.m_iDeaths =
+		Entities::GetClassPropOffset(classname, { "m_RoundScoreData", "m_iDeaths" });
+}
+
 void Player::SetPlayerResource(CHandle<IClientEntity> entity) {
 	playerResource = entity;
+
+	const char* classname = Entities::GetEntityClassname(playerResource);
+
+	playerResourceOffsets.m_flNextRespawnTime = 
+		Entities::GetClassPropOffset(classname, { "m_flNextRespawnTime" });
+	playerResourceOffsets.m_iMaxHealth =
+		Entities::GetClassPropOffset(classname, { "m_iMaxHealth" });
 }

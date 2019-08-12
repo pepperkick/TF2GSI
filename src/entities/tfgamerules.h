@@ -25,6 +25,15 @@ public:
 
 private:
 	static TFGameRules* instance;
+	static struct Offsets {
+		int m_nRoundsPlayed;
+		int m_nGameType;
+		int m_bPlayingKoth;
+		int m_bPlayingHybrid_CTF_CP;
+		int m_hRedKothTimer;
+		int m_hBlueKothTimer;
+		int m_flMapResetTime;
+	} offsets;
 
 	CHandle<IClientEntity> entity;
 };
